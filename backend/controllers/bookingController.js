@@ -6,7 +6,18 @@ const Provider = require('../models/Provider');
 // @access  Private/User
 const bookAppointment = async (req, res) => {
   try {
-    const { providerId, date, startTime, endTime, notes } = req.body;
+    const { 
+      providerId, 
+      hospitalId,
+      hospitalState,
+      appointmentMode,
+      appointmentType,
+      department,
+      date, 
+      startTime, 
+      endTime, 
+      notes 
+    } = req.body;
 
     // Check if provider exists
     const provider = await Provider.findById(providerId);
@@ -38,6 +49,11 @@ const bookAppointment = async (req, res) => {
     const appointment = await Appointment.create({
       userId: req.user.id,
       providerId,
+      hospitalId,
+      hospitalState,
+      appointmentMode,
+      appointmentType,
+      department,
       date,
       startTime,
       endTime,
@@ -56,8 +72,12 @@ const bookAppointment = async (req, res) => {
 const getMyAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ userId: req.user.id })
-      .populate('providerId')
-      .populate('userId', 'name email avatar');
+      .populate({
+        path: 'providerId',
+        populate: { path: 'userId', select: 'name avatar' }
+      })
+      .populate('userId', 'name email avatar')
+      .populate('hospitalId', 'name address state phone');
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -80,8 +100,39 @@ const getProviderAppointments = async (req, res) => {
   }
 };
 
+// @desc    Update appointment status
+// @route   PATCH /api/bookings/:id/status
+// @access  Private/Provider
+const updateAppointmentStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Validate status
+    if (!['confirmed', 'cancelled', 'completed'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    // Verify provider owns this appointment
+    const provider = await Provider.findOne({ userId: req.user.id });
+    if (!provider || appointment.providerId.toString() !== provider._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this appointment' });
+    }
+
+    appointment.status = status;
+    await appointment.save();
+
+    res.json(appointment);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   bookAppointment,
   getMyAppointments,
   getProviderAppointments,
+  updateAppointmentStatus,
 };

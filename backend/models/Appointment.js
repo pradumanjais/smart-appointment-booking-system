@@ -11,6 +11,26 @@ const appointmentSchema = new mongoose.Schema({
     ref: 'Provider',
     required: [true, 'Provider ID is required'],
   },
+  hospitalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hospital',
+    required: [true, 'Hospital is required'],
+  },
+  hospitalState: String,
+  appointmentMode: {
+    type: String,
+    enum: ['Physical', 'Video'],
+    required: true,
+  },
+  appointmentType: {
+    type: String,
+    enum: ['New', 'Follow-up'],
+    required: true,
+  },
+  department: {
+    type: String,
+    required: true,
+  },
   date: {
     type: Date,
     required: [true, 'Appointment date is required'],

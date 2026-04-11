@@ -1,17 +1,24 @@
 const express = require('express');
-const { registerUser, loginUser } = require('../controllers/authController');
+const { registerUser, loginUser, getMe, updateProfile } = require('../controllers/authController');
 const { registerValidator, loginValidator } = require('../validators/authValidator');
+const { authMiddleware } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // @route   POST /api/auth/register
-// @desc    Register a new user
 // @access  Public
 router.post('/register', registerValidator, registerUser);
 
 // @route   POST /api/auth/login
-// @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', loginValidator, loginUser);
+
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', authMiddleware, getMe);
+
+// @route   PUT /api/auth/profile
+// @access  Private
+router.put('/profile', authMiddleware, updateProfile);
 
 module.exports = router;

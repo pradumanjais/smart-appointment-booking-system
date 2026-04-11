@@ -14,6 +14,7 @@ const providerProfileValidator = [
   body('experience').isNumeric().withMessage('Experience must be a number'),
   body('pricePerHour').isNumeric().withMessage('Price per hour must be a number'),
   body('availability').isArray().withMessage('Availability must be an array'),
+  body('hospitalId').notEmpty().withMessage('Hospital allocation is required'),
   validate,
 ];
 

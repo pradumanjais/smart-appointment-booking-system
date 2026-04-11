@@ -1,6 +1,6 @@
 const express = require('express');
 const { authMiddleware, roleMiddleware } = require('../middleware/authMiddleware');
-const { getProviders, getProviderById, updateProviderProfile } = require('../controllers/providerController');
+const { getProviders, getProviderById, updateProviderProfile, getProviderMe } = require('../controllers/providerController');
 const { providerProfileValidator } = require('../validators/providerValidator');
 
 const router = express.Router();
@@ -9,6 +9,11 @@ const router = express.Router();
 // @desc    Get all providers
 // @access  Public
 router.get('/', getProviders);
+
+// @route   GET /api/providers/profile
+// @desc    Get current provider full profile
+// @access  Private/Provider
+router.get('/profile', authMiddleware, roleMiddleware(['provider']), getProviderMe);
 
 // @route   GET /api/providers/:id
 // @desc    Get single provider

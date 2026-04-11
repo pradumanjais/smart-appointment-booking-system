@@ -37,8 +37,13 @@ const providerSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  hospitalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hospital',
+    required: [true, 'Hospital allocation is required'],
+  },
   location: {
-    type: String,
+    type: String, // Keep as backup for specific room/floor
     trim: true,
   },
   rating: {

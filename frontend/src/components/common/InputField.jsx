@@ -4,6 +4,7 @@ import './common.css';
 const InputField = ({ 
   label, 
   icon: Icon, 
+  rightElement,
   error, 
   className = '', 
   ...props 
@@ -14,6 +15,7 @@ const InputField = ({
       <div className={`input-container ${error ? 'input-error' : ''}`}>
         {Icon && <Icon className="input-icon" size={20} />}
         <input className="input-field" {...props} />
+        {rightElement && <div className="input-right-element">{rightElement}</div>}
       </div>
       {error && <span className="error-text">{error}</span>}
     </div>

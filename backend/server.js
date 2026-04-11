@@ -20,6 +20,8 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/providers', require('./routes/provider'));
 app.use('/api/bookings', require('./routes/booking'));
+app.use('/api/hospitals', require('./routes/hospital'));
+app.use('/api/stats', require('./routes/stats'));
 
 app.get('/', (req, res) => {
   res.send('Smart Appointment Booking System API is running...');

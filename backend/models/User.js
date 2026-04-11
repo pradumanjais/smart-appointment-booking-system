@@ -25,6 +25,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  age: {
+    type: Number,
+  },
+  bloodGroup: {
+    type: String,
+    trim: true,
+  },
+  state: {
+    type: String,
+    trim: true,
+  },
+  address: {
+    type: String,
+    trim: true,
+  },
   avatar: {
     type: String,
     default: 'https://cdn-icons-png.flaticon.com/512/147/147144.png',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
@@ -9,6 +9,7 @@ import api from '../../api';
 const Login = ({ setUser }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -48,12 +49,18 @@ const Login = ({ setUser }) => {
         />
         <InputField
           label="Password"
-          type="password"
+          name="password"
+          type={showPassword ? 'text' : 'password'}
           placeholder="••••••••"
           icon={Lock}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          rightElement={
+            <button type="button" onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          }
         />
         
         {error && <div className="error-text" style={{ textAlign: 'center', marginBottom: '16px' }}>{error}</div>}

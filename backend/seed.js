@@ -3,8 +3,15 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 const Provider = require('./models/Provider');
+const Hospital = require('./models/Hospital');
 
 dotenv.config();
+
+const hospitals = [
+  { name: 'City Central Hospital', state: 'New York', city: 'Manhattan', departments: ['Cardiology', 'Neurology', 'Pediatrics'] },
+  { name: 'Valley Medical Center', state: 'California', city: 'San Francisco', departments: ['Dermatology', 'Psychiatry', 'ENT'] },
+  { name: 'Lakeside Health', state: 'Illinois', city: 'Chicago', departments: ['Pediatrics', 'General Medicine'] },
+];
 
 const doctors = [
   {
@@ -13,18 +20,16 @@ const doctors = [
     password: 'password123',
     role: 'provider',
     specialization: 'Cardiologist',
+    hospitalName: 'City Central Hospital',
+    department: 'Cardiology',
     experience: 12,
-    location: 'New York, NY',
+    location: 'Building A, Floor 3',
     pricePerHour: 150,
     bio: 'Board-certified cardiologist with over 12 years of experience in heart health and surgery.',
     availability: [
       {
         day: 'Monday',
         slots: [{ startTime: '09:00', endTime: '10:00' }, { startTime: '10:00', endTime: '11:00' }]
-      },
-      {
-        day: 'Wednesday',
-        slots: [{ startTime: '14:00', endTime: '15:00' }, { startTime: '15:00', endTime: '16:00' }]
       }
     ]
   },
@@ -34,52 +39,16 @@ const doctors = [
     password: 'password123',
     role: 'provider',
     specialization: 'Dermatologist',
+    hospitalName: 'Valley Medical Center',
+    department: 'Dermatology',
     experience: 8,
-    location: 'San Francisco, CA',
+    location: 'West Wing, Suite 402',
     pricePerHour: 120,
     bio: 'Specializing in skincare, acne treatment, and laser therapy.',
     availability: [
       {
         day: 'Tuesday',
-        slots: [{ startTime: '11:00', endTime: '12:00' }, { startTime: '13:00', endTime: '14:00' }]
-      },
-      {
-        day: 'Thursday',
-        slots: [{ startTime: '09:00', endTime: '10:00' }]
-      }
-    ]
-  },
-  {
-    name: 'Dr. Emily White',
-    email: 'emily.w@example.com',
-    password: 'password123',
-    role: 'provider',
-    specialization: 'Pediatrician',
-    experience: 15,
-    location: 'Chicago, IL',
-    pricePerHour: 100,
-    bio: 'Dedicated pediatrician focused on child development and preventative care.',
-    availability: [
-      {
-        day: 'Friday',
-        slots: [{ startTime: '08:00', endTime: '09:00' }, { startTime: '09:00', endTime: '10:00' }]
-      }
-    ]
-  },
-  {
-    name: 'Dr. Robert Brown',
-    email: 'robert.b@example.com',
-    password: 'password123',
-    role: 'provider',
-    specialization: 'Neurologist',
-    experience: 20,
-    location: 'Boston, MA',
-    pricePerHour: 200,
-    bio: 'Expert in neurological disorders and brain health.',
-    availability: [
-      {
-        day: 'Monday',
-        slots: [{ startTime: '13:00', endTime: '14:00' }]
+        slots: [{ startTime: '11:00', endTime: '12:00' }]
       }
     ]
   }
@@ -93,6 +62,11 @@ const seedData = async () => {
     // Clear existing data
     await User.deleteMany({ role: 'provider' });
     await Provider.deleteMany({});
+    await Hospital.deleteMany({});
+
+    // 1. Seed Hospitals
+    const createdHospitals = await Hospital.create(hospitals);
+    console.log(`Created ${createdHospitals.length} hospitals`);
 
     for (const doc of doctors) {
       // Create user
@@ -103,20 +77,24 @@ const seedData = async () => {
         role: doc.role
       });
 
+      // Find hospital
+      const hospital = createdHospitals.find(h => h.name === doc.hospitalName);
+
       // Create provider profile
       await Provider.create({
         userId: user._id,
+        hospitalId: hospital._id,
         specialization: doc.specialization,
         experience: doc.experience,
         location: doc.location,
         pricePerHour: doc.pricePerHour,
         bio: doc.bio,
         availability: doc.availability,
-        rating: (Math.random() * 2 + 3).toFixed(1) // Random rating between 3.0 and 5.0
+        rating: (Math.random() * 2 + 3).toFixed(1)
       });
     }
 
-    console.log('Successfully seeded 4 doctor profiles!');
+    console.log('Successfully seeded Hospitals & Providers!');
     process.exit();
   } catch (err) {
     console.error('Seeding error:', err);

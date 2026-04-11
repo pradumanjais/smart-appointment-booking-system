@@ -4,7 +4,7 @@ const User = require('../models/User');
 // Register User
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { name, email, password, role, phone, age, bloodGroup, state, address } = req.body;
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
@@ -19,6 +19,10 @@ const registerUser = async (req, res) => {
       password,
       role,
       phone,
+      age,
+      bloodGroup,
+      state,
+      address,
     });
 
     if (user) {
@@ -64,6 +68,49 @@ const loginUser = async (req, res) => {
   }
 };
 
+// @desc    Get current user profile
+// @route   GET /api/auth/me
+// @access  Private
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+  try {
+    const { name, phone, age, bloodGroup, avatar, state, address } = req.body;
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update fields
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (age) user.age = age;
+    if (bloodGroup) user.bloodGroup = bloodGroup;
+    if (avatar) user.avatar = avatar;
+    if (state) user.state = state;
+    if (address) user.address = address;
+
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Helper: Generate Token
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -71,4 +118,4 @@ const generateToken = (id, role) => {
   });
 };
 
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, getMe, updateProfile };

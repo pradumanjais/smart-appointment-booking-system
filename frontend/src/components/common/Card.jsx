@@ -1,9 +1,10 @@
 import React from 'react';
-import './common.css';
 
-const Card = ({ children, className = '', hoverEffect = true }) => {
+const Card = ({ children, padding = 'md', className = '', ...props }) => {
+  const paddingClass = `p-${padding}`;
+  
   return (
-    <div className={`card glass ${hoverEffect ? 'card-hover' : ''} ${className}`}>
+    <div className={`ui-card ${paddingClass} ${className}`} {...props}>
       {children}
     </div>
   );

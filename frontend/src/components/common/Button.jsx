@@ -8,6 +8,7 @@ const Button = ({
   loading = false, 
   disabled = false, 
   className = '', 
+  icon: Icon,
   ...props 
 }) => {
   const baseClass = 'btn';
@@ -23,7 +24,12 @@ const Button = ({
     >
       {loading ? (
         <span className="spinner"></span>
-      ) : children}
+      ) : (
+        <>
+          {Icon && <Icon size={size === 'sm' ? 16 : 20} className="btn-icon" />}
+          {children}
+        </>
+      )}
     </button>
   );
 };

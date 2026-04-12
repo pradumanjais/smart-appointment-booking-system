@@ -5,6 +5,7 @@ import AuthLayout from './AuthLayout';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
 import api from '../../api';
+import { useToast } from '../../context/ToastContext';
 
 const Register = ({ setUser }) => {
   const [formData, setFormData] = useState({
@@ -31,8 +32,8 @@ const Register = ({ setUser }) => {
   ].sort();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -41,16 +42,17 @@ const Register = ({ setUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       const { data } = await api.post('/auth/register', formData);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
+      showToast('Account created successfully!', 'success');
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      const msg = err.response?.data?.message || 'Something went wrong. Please try again.';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,6 @@ const Register = ({ setUser }) => {
                 className="input-field"
                 value={formData.role}
                 onChange={handleChange}
-                style={{ paddingLeft: '0' }}
               >
                 <option value="user">Patient / Customer</option>
                 <option value="provider">Service Provider</option>
@@ -118,7 +119,6 @@ const Register = ({ setUser }) => {
                  className="input-field"
                  value={formData.state}
                  onChange={handleChange}
-                 style={{ paddingLeft: '0' }}
                  required
                >
                  <option value="">Choose your region</option>
@@ -161,7 +161,6 @@ const Register = ({ setUser }) => {
                   className="input-field"
                   value={formData.bloodGroup}
                   onChange={handleChange}
-                  style={{ paddingLeft: '0' }}
                 >
                   <option value="">Select (Optional)</option>
                   {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
@@ -188,8 +187,6 @@ const Register = ({ setUser }) => {
             </button>
           }
         />
-
-        {error && <div className="error-text" style={{ textAlign: 'center', marginBottom: '16px' }}>{error}</div>}
 
         <Button type="submit" loading={loading} className="w-full">
           <UserPlus size={20} /> Create Account

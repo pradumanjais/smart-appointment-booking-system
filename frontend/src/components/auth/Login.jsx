@@ -5,28 +5,30 @@ import AuthLayout from './AuthLayout';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
 import api from '../../api';
+import { useToast } from '../../context/ToastContext';
 
 const Login = ({ setUser }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       const { data } = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
+      showToast('Welcome back!', 'success');
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      const msg = err.response?.data?.message || 'Something went wrong. Please try again.';
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -62,8 +64,6 @@ const Login = ({ setUser }) => {
             </button>
           }
         />
-        
-        {error && <div className="error-text" style={{ textAlign: 'center', marginBottom: '16px' }}>{error}</div>}
 
         <Button type="submit" loading={loading} className="w-full">
           <LogIn size={20} /> Sign In

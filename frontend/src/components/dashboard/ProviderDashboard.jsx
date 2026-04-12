@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail } from 'lucide-react';
+import api from '../../api';
+import './dashboard.css';
+import DashboardShell from './layout/DashboardShell';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
-import api from '../../api';
-import './dashboard.css';
+import Skeleton from '../common/Skeleton';
+import StatCard from './common/StatCard';
+import AppointmentListCard from './common/AppointmentListCard';
+import { useToast } from '../../context/ToastContext';
+import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Award, DollarSign } from 'lucide-react';
 
 const ProviderDashboard = () => {
+  const { showToast } = useToast();
   const [currentTab, setCurrentTab] = useState('appointments');
   const [appointments, setAppointments] = useState([]);
   const [providerData, setProviderData] = useState(null);
@@ -62,12 +68,12 @@ const ProviderDashboard = () => {
   const handleStatusUpdate = async (id, status) => {
     try {
       await api.patch(`/bookings/${id}/status`, { status });
-      // Update local state
+      showToast(`Appointment ${status} successfully`, 'success');
       setAppointments(appointments.map(app =>
         app._id === id ? { ...app, status } : app
       ));
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
+      showToast(err.response?.data?.message || 'Update failed', 'error');
     }
   };
 
@@ -151,134 +157,83 @@ const ProviderDashboard = () => {
   };
 
   return (
-    <div className="dashboard-view animate-fade-in">
-      <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <h1 style={{ marginBottom: '4px' }}>{getTimeGreeting()}, Dr. {providerData?.userId?.name?.split(' ')[0] || 'Expert'}</h1>
-          <p>You have {appointments.filter(a => a.status === 'pending').length} pending requests to review today.</p>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-           <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)' }}>
-             <Calendar size={14} /> {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-           </p>
-        </div>
-      </div>
-
-      <div className="tabs" style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-        <button
-          className={`tab-btn ${currentTab === 'appointments' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('appointments')}
-          style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, padding: '8px 16px', cursor: 'pointer', borderBottom: currentTab === 'appointments' ? '2px solid var(--primary)' : 'none', color: currentTab === 'appointments' ? 'var(--primary)' : 'var(--text-muted)' }}
-        >
-          My Schedule
-        </button>
-        <button
-          className={`tab-btn ${currentTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('profile')}
-          style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, padding: '8px 16px', cursor: 'pointer', borderBottom: currentTab === 'profile' ? '2px solid var(--primary)' : 'none', color: currentTab === 'profile' ? 'var(--primary)' : 'var(--text-muted)' }}
-        >
-          My Profile
-        </button>
-      </div>
+    <DashboardShell
+      currentTab={currentTab}
+      setCurrentTab={setCurrentTab}
+      user={providerData?.userId}
+      role="provider"
+    >
 
       {currentTab === 'appointments' && (
         <div className="dashboard-split mt-6">
           {/* MAIN COLUMN */}
           <div className="main-content">
-            <div className="stats-grid mb-8">
-              <div className="glass-stat stat-primary">
-                <div className="stat-value">{appointments.filter(a => new Date(a.date).toLocaleDateString() === new Date().toLocaleDateString()).length}</div>
-                <div className="stat-label">Today's Load</div>
-              </div>
-              <div className="glass-stat stat-warning">
-                <div className="stat-value">{appointments.filter(a => a.status === 'pending').length}</div>
-                <div className="stat-label">Pending Review</div>
-              </div>
-              <div className="glass-stat stat-success">
-                <div className="stat-value">{calculateCompletionRate()}%</div>
-                <div className="stat-label">Completion Rate</div>
-              </div>
-              <div className="glass-stat stat-primary">
-                <div className="stat-value">4.9</div>
-                <div className="stat-label">Avg. Rating</div>
-              </div>
+            <div className="stats-container">
+              <StatCard 
+                label="Today's Appointments" 
+                value={appointments.filter(a => new Date(a.date).toLocaleDateString() === new Date().toLocaleDateString()).length}
+                icon={Calendar}
+                variant="indigo"
+              />
+              <StatCard 
+                label="Pending Requests" 
+                value={appointments.filter(a => a.status === 'pending').length}
+                icon={Activity}
+                variant="amber"
+              />
+              <StatCard 
+                label="Completion Rate" 
+                value={`${calculateCompletionRate()}%`}
+                icon={TrendingUp}
+                variant="emerald"
+              />
+              <StatCard 
+                label="Expert Rating" 
+                value="4.9"
+                icon={Star}
+                variant="rose"
+              />
             </div>
 
             <div className="appointments-section">
-              <div className="panel-header">
-                <h2>Upcoming Appointments</h2>
-                <span className="badge">{appointments.filter(a => a.status === 'confirmed').length} Active</span>
-              </div>
-            <div className="appointments-list">
-              {loading ? (
-                <p>Loading appointments...</p>
-              ) : appointments.length > 0 ? (
-                appointments.map((appointment) => (
-                  <Card key={appointment._id} className="appointment-card" hoverEffect={false} style={{ borderLeft: `4px solid var(--status-${appointment.status})` }}>
-                    <div className="appointment-user">
-                      <div className="item-icon">
-                        <User size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {appointment.userId?.name}
-                          <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#f0f0f0', borderRadius: '4px', textTransform: 'uppercase' }}>
-                             {appointment.appointmentType}
-                          </span>
-                        </h3>
-                        <p className="detail-item"><Clock size={14} /> {appointment.startTime} - {appointment.endTime}</p>
-                        <p className="detail-item"><Calendar size={14} /> {new Date(appointment.date).toLocaleDateString()}</p>
-                        <p className="detail-item" style={{ fontSize: '0.75rem', marginTop: '4px' }}>
-                           <Activity size={12} /> {appointment.userId?.bloodGroup || 'O+'} | {appointment.userId?.age || 'N/A'} yrs
-                        </p>
-                      </div>
-                    </div>
-                    <div className="appointment-status">
-                      <span className={`status-badge status-${appointment.status}`}>
-                        {appointment.status}
-                      </span>
-                    </div>
-                    <div className="appointment-actions">
-                      {appointment.status === 'pending' && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleStatusUpdate(appointment._id, 'confirmed')}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStatusUpdate(appointment._id, 'cancelled')}
-                          >
-                            Decline
-                          </Button>
-                        </div>
-                      )}
-                      {appointment.status === 'confirmed' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          style={{ borderColor: '#10b981', color: '#10b981' }}
-                          onClick={() => handleStatusUpdate(appointment._id, 'completed')}
-                        >
-                          <CheckCircle size={16} /> Mark Completed
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: '48px', background: '#f8f9fa', borderRadius: '16px', border: '2px dashed var(--border)' }}>
-                   <Calendar size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-                   <p style={{ color: 'var(--text-muted)' }}>No appointments scheduled for today.</p>
+              <div className="panel-header" style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                   <h2 style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Daily Schedule</h2>
+                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Manage your medical operations for today</p>
                 </div>
-              )}
+                <div className="meta-info">
+                  <span className="badge-pill bg-primary-light text-primary" style={{ padding: '8px 16px', borderRadius: '12px' }}>
+                    {appointments.filter(a => a.status === 'confirmed').length} Active Appointments
+                  </span>
+                </div>
+              </div>
+
+              <div className="timeline-list">
+                {loading ? (
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                     {[1, 2, 3].map(i => (
+                       <Skeleton key={i} variant="rect" height={120} />
+                     ))}
+                   </div>
+                ) : appointments.length > 0 ? (
+                  appointments.map((appointment) => (
+                    <AppointmentListCard 
+                      key={appointment._id} 
+                      appointment={appointment} 
+                      role="provider"
+                      onAction={handleStatusUpdate}
+                    />
+                  ))
+                ) : (
+                  <div className="tc py-12 glass-stat" style={{ borderRadius: '24px' }}>
+                     <Calendar size={64} className="text-muted mb-4" style={{ opacity: 0.2 }} />
+                     <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Clear Schedule</h3>
+                     <p className="text-muted">You have no appointments scheduled for today.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
         {/* SIDE PANEL */}
         <div className="side-panel">
@@ -317,213 +272,166 @@ const ProviderDashboard = () => {
     )}
 
       {currentTab === 'profile' && providerData && (
-        <div className="profile-section animate-fade-in">
-          <Card className="profile-card glass" hoverEffect={false}>
-            <div className="profile-header-meta" style={{ 
-              background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)', 
-              margin: '-40px -40px 32px -40px', 
-              padding: '40px',
-              borderRadius: '24px 24px 0 0',
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {/* Decorative elements */}
-              <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: '200px', height: '200px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }}></div>
-              
-              <div className="profile-avatar-wrapper" style={{ border: '4px solid rgba(255,255,255,0.3)', borderRadius: '50%', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
-                <img src={providerData.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} alt="Doctor" className="profile-avatar-large" />
-              </div>
-              <div className="profile-title" style={{ zIndex: 1 }}>
-                <h2 style={{ color: 'white', fontSize: '2.2rem', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{providerData.userId?.name}</h2>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
-                  <span className="role-badge" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.3)' }}>LICENSED PROVIDER</span>
-                  {providerData.experience && <span style={{ fontSize: '0.8rem', fontWeight: 600, padding: '4px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '20px' }}>{providerData.experience} Years Exp.</span>}
-                </div>
-                <div style={{ display: 'flex', gap: '20px', marginTop: '16px' }}>
-                  <span style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <MapPin size={18} /> {providerData.hospitalId?.name || 'Unassigned Hospital'}
-                  </span>
-                  <span style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Briefcase size={18} /> {providerData.specialization || 'General Practice'}
-                  </span>
-                </div>
-              </div>
-              {!isEditing && (
-                <Button 
-                  variant="primary" 
-                  className="ml-auto" 
-                  style={{ background: 'white', color: 'var(--primary)', border: 'none', fontWeight: 700 }}
-                  onClick={handleEditClick}
-                >
-                  Edit Professional Profile
-                </Button>
+        <div className="modern-profile-shell animate-slide-up">
+          {/* LEFT COLUMN: Expert Identity Sidebar */}
+          <div className="profile-sidebar-card">
+            <div className="expert-badge-shimmer">
+              <Award size={14} /> Verified Specialist
+            </div>
+            
+            <div className="profile-avatar-giant-box">
+              <img 
+                src={editFormData.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
+                alt="Expert" 
+                className="profile-avatar-giant" 
+              />
+              {isEditing && (
+                <label className="avatar-edit-glare">
+                  <Camera size={20} />
+                  <input type="file" accept="image/*" style={{ display: 'none' }} />
+                </label>
               )}
             </div>
 
-            {isEditing ? (
-              <div className="edit-profile-form" style={{ marginTop: '24px' }}>
-                <div className="input-field-wrapper">
-                  <label className="input-label" style={{ display: 'block', marginBottom: '8px', color: 'var(--text)', fontWeight: 600 }}>1. Select State</label>
-                  <select
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}
-                    value={editFormData.hospitalState}
-                    onChange={(e) => setEditFormData({ ...editFormData, hospitalState: e.target.value, hospitalId: '', specialization: '' })}
-                  >
-                    <option value="">Choose State / UT</option>
-                    {[...new Set(hospitals.map(h => h.state))].sort().map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
+            <h2>Dr. {providerData.userId?.name}</h2>
+            <p className="user-email">{providerData.userId?.email}</p>
 
-                <div className="input-field-wrapper mt-4">
-                  <label className="input-label" style={{ display: 'block', marginBottom: '8px', color: 'var(--text)', fontWeight: 600 }}>2. Select Hospital</label>
-                  <select
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}
-                    value={editFormData.hospitalId}
-                    disabled={!editFormData.hospitalState}
-                    onChange={(e) => setEditFormData({ ...editFormData, hospitalId: e.target.value, specialization: '' })}
-                  >
-                    <option value="">Choose Hospital</option>
-                    {hospitals.filter(h => h.state === editFormData.hospitalState).map(h => (
-                      <option key={h._id} value={h._id}>{h.name}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="expert-rating-banner">
+              <Star size={16} fill="currentColor" /> Expert Rating: 4.9 (High-Trust)
+            </div>
 
-                <div className="input-field-wrapper mt-4">
-                  <label className="input-label" style={{ display: 'block', marginBottom: '8px', color: 'var(--text)', fontWeight: 600 }}>3. Specialization / Department</label>
-                  <select
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}
-                    value={editFormData.specialization}
-                    disabled={!editFormData.hospitalId}
-                    onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
-                  >
-                    <option value="">Select Specialty</option>
-                    {hospitals.find(h => h._id === editFormData.hospitalId)?.departments.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="profile-summary-vitals">
+              <div className="specialist-vital-pill">
+                <label>Experience</label>
+                <span>{providerData.experience}+ Yrs</span>
+              </div>
+              <div className="specialist-vital-pill">
+                <label>Consult Fee</label>
+                <span>${providerData.pricePerHour}</span>
+              </div>
+            </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '24px' }}>
-                  <InputField label="Years Experience" type="number" value={editFormData.experience} onChange={(e) => setEditFormData({ ...editFormData, experience: e.target.value })} />
-                  <InputField label="Consultation Fee ($)" type="number" value={editFormData.pricePerHour} onChange={(e) => setEditFormData({ ...editFormData, pricePerHour: e.target.value })} />
-                </div>
+            {!isEditing ? (
+              <Button 
+                variant="primary" 
+                className="w-full mt-8" 
+                onClick={() => setIsEditing(true)}
+                style={{ borderRadius: '16px', padding: '14px' }}
+              >
+                <Edit3 size={18} className="mr-2" /> Refine Identity
+              </Button>
+            ) : (
+              <p className="mt-8 text-xs font-bold text-muted uppercase tracking-widest">Editing Mode Active</p>
+            )}
+          </div>
 
-                <div style={{ marginTop: '24px' }}>
-                  <InputField label="Bio / Quick Notes" placeholder="Short description..." value={editFormData.bio} onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })} />
+          {/* RIGHT COLUMN: Professional Content Area */}
+          <div className="profile-main-content">
+            {/* HERITAGE PACK */}
+            <div className="info-pack-card animate-slide-up animate-delay-1">
+              <div className="pack-header">
+                <Briefcase size={22} />
+                <h3>Expertise & Heritage</h3>
+              </div>
+              
+              {isEditing ? (
+                 <div className="pack-grid">
+                    <div className="modern-field-group">
+                      <label><Briefcase size={16} /> Specialty Area</label>
+                      <select 
+                        className="input-field" 
+                        style={{ height: '52px', borderRadius: '16px' }}
+                        value={editFormData.specialization} 
+                        onChange={(e) => setEditFormData({...editFormData, specialization: e.target.value})}
+                      >
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="General Medicine">General Medicine</option>
+                      </select>
+                    </div>
+                    <div className="modern-field-group">
+                      <label><TrendingUp size={16} /> Years Experience</label>
+                      <InputField type="number" value={editFormData.experience} onChange={(e) => setEditFormData({...editFormData, experience: e.target.value})} />
+                    </div>
+                    <div className="modern-field-group" style={{ gridColumn: 'span 2' }}>
+                      <label><Activity size={16} /> Professional Bio</label>
+                      <InputField value={editFormData.bio} onChange={(e) => setEditFormData({...editFormData, bio: e.target.value})} placeholder="Describe your medical journey..." />
+                    </div>
+                 </div>
+              ) : (
+                <div className="doctor-legacy-bio">
+                  {providerData.bio || 'Dedicated to providing precision healthcare with over a decade of clinical experience in specialized medicine.'}
                 </div>
+              )}
+            </div>
 
-                <div className="availability-planner mt-4">
-                  <h3 className="section-title" style={{ fontSize: '1.1rem', marginBottom: '16px', border: 'none' }}>Set Regular Business Hours</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
-                      const isSelected = editFormData.availability.find(a => a.day === day);
-                      return (
-                        <div key={day} style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '16px', 
-                          padding: '16px', 
-                          borderRadius: '12px', 
-                          background: isSelected ? 'rgba(var(--primary-rgb), 0.04)' : '#fff', 
-                          border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                          transition: 'all 0.2s ease'
-                        }}>
-                          <label style={{ width: '140px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: isSelected ? 'var(--primary)' : 'var(--text)' }}>
-                            <input type="checkbox" checked={!!isSelected} onChange={() => toggleAvailability(day)} style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }} />
-                            {day}
-                          </label>
-                          {isSelected ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, animation: 'fadeIn 0.3s ease' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Starts</span>
-                                <input type="time" value={isSelected.slots[0].startTime} onChange={(e) => updateSlotTime(day, 'startTime', e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem' }} />
-                              </div>
-                              <span style={{ color: 'var(--text-muted)', marginTop: '16px' }}>to</span>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Ends</span>
-                                <input type="time" value={isSelected.slots[0].endTime} onChange={(e) => updateSlotTime(day, 'endTime', e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem' }} />
-                              </div>
-                            </div>
+            {/* OPERATIONAL PLANNING PACK */}
+            <div className="info-pack-card animate-slide-up animate-delay-2">
+              <div className="pack-header">
+                <Clock size={22} />
+                <h3>Operational Planner</h3>
+              </div>
+              
+              <div className="availability-planner-container">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                   const dayObj = (isEditing ? editFormData.availability : providerData.availability)?.find(a => a.day === day);
+                   return (
+                     <div key={day} className={`planner-day-card ${dayObj ? 'active' : ''}`}>
+                        <div className="planner-status-row">
+                          <h4>{day}</h4>
+                          {isEditing ? (
+                            <input 
+                              type="checkbox" 
+                              checked={!!dayObj} 
+                              onChange={() => toggleAvailability(day)} 
+                              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                            />
                           ) : (
-                            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Away / Offline</span>
+                            <div className={`status-badge-unified ${dayObj ? 'sb-confirmed' : 'sb-completed'}`}>
+                              {dayObj ? 'Online' : 'Off'}
+                            </div>
                           )}
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel Changes</Button>
-                  <Button onClick={handleSaveProfile} loading={saving}>Save Profile</Button>
-                </div>
+                        {dayObj ? (
+                          <div className="slot-time-input-group">
+                            <input 
+                               type="time" 
+                               disabled={!isEditing}
+                               value={dayObj.slots[0].startTime} 
+                               onChange={(e) => updateSlotTime(day, 'startTime', e.target.value)} 
+                            />
+                            <span className="text-muted" style={{ fontSize: '0.65rem', fontWeight: 800 }}>TO</span>
+                            <input 
+                               type="time" 
+                               disabled={!isEditing}
+                               value={dayObj.slots[0].endTime} 
+                               onChange={(e) => updateSlotTime(day, 'endTime', e.target.value)} 
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ padding: '12px', textAlign: 'center', opacity: 0.5 }}>
+                            <p className="text-xs font-bold italic">Unscheduled</p>
+                          </div>
+                        )}
+                     </div>
+                   )
+                })}
               </div>
-            ) : (
-              <div className="profile-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '32px' }}>
-                <div className="profile-info-group">
-                  <label><Mail size={16} /> Primary Email</label>
-                  <p style={{ background: 'white', border: '1px solid var(--border)', fontSize: '1rem' }}>{providerData.userId?.email}</p>
-                </div>
 
-                <div className="profile-info-group">
-                  <label><Phone size={16} /> Contact Number</label>
-                  <p style={{ background: 'white', border: '1px solid var(--border)', fontSize: '1rem' }}>{providerData.userId?.phone || 'Not configured'}</p>
-                </div>
-
-                {providerData.bio && (
-                  <div className="profile-info-group" style={{ gridColumn: '1 / -1' }}>
-                    <label><Activity size={16} /> Professional Bio</label>
-                    <p style={{ background: '#fcfcfc', border: '1.5px dashed var(--border)', fontSize: '0.95rem', fontStyle: 'italic', lineHeight: '1.6' }}>
-                      "{providerData.bio}"
-                    </p>
-                  </div>
-                )}
-
-                <div className="profile-info-group" style={{ gridColumn: '1 / -1', marginTop: '16px' }}>
-                  <label style={{ marginBottom: '16px' }}><Clock size={18} /> Public Availability</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
-                    {providerData.availability && providerData.availability.length > 0 ? (
-                      providerData.availability.map((dayObj, idx) => (
-                        <div key={idx} style={{ 
-                          padding: '16px', 
-                          background: 'white', 
-                          borderRadius: '16px', 
-                          border: '1px solid var(--border)',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <h4 style={{ margin: 0, color: 'var(--text)', fontSize: '0.95rem' }}>{dayObj.day}</h4>
-                          <span style={{ 
-                            padding: '6px 12px', 
-                            background: 'rgba(var(--primary-rgb), 0.1)', 
-                            color: 'var(--primary)', 
-                            borderRadius: '20px', 
-                            fontSize: '0.8rem', 
-                            fontWeight: 'bold' 
-                          }}>
-                            {dayObj.slots[0].startTime} - {dayObj.slots[0].endTime}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '32px', background: '#f8f9fa', borderRadius: '16px' }}>
-                        <p style={{ color: 'var(--text-muted)', margin: 0 }}>No regular hours configured. Patients cannot book appointments yet.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </Card>
+              {isEditing && (
+                 <div className="profile-footer-actions">
+                    <Button variant="secondary" onClick={() => setIsEditing(false)} style={{ borderRadius: '12px' }}>Discard Edits</Button>
+                    <Button onClick={handleSaveProfile} loading={saving} style={{ borderRadius: '12px', padding: '10px 24px' }}>Publish Identity</Button>
+                 </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 };
 

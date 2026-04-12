@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone, Activity, ShieldCheck, Mail, Camera, Edit3, Shield } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
+import Skeleton from '../common/Skeleton';
 import api from '../../api';
 import './dashboard.css';
 import html2canvas from 'html2canvas';
 import AppointmentCard from './AppointmentCard';
+import DashboardShell from './layout/DashboardShell';
+import AppointmentListCard from './common/AppointmentListCard';
+import { useToast } from '../../context/ToastContext';
 
 const UserDashboard = () => {
-  const [currentTab, setCurrentTab] = useState('browse'); // 'browse', 'appointments', or 'profile'
+  const { showToast } = useToast();
+  const [currentTab, setCurrentTab] = useState('browse');
   const [myAppointments, setMyAppointments] = useState([]);
   const [userData, setUserData] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -131,12 +136,22 @@ const UserDashboard = () => {
     }
   };
 
+  const handleApptAction = async (id, status) => {
+    try {
+      await api.patch(`/bookings/${id}/status`, { status });
+      showToast(`Appointment ${status} successfully`, 'success');
+      refreshAppointments();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Action failed', 'error');
+    }
+  };
+
   const handleDownloadTicket = async (appt) => {
     setTicketData(appt);
     setDownloading(true);
+    showToast('Generating ticket...', 'info');
     try {
-      // Small timeout to ensure the hidden component re-renders with new data
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 400));
       if (!cardRef.current) return;
       
       const canvas = await html2canvas(cardRef.current, {
@@ -148,11 +163,12 @@ const UserDashboard = () => {
       const image = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.href = image;
-      link.download = `appointment-letter-${appt._id?.toString().slice(-6)}.png`;
+      link.download = `appointment-ticket-${appt._id?.toString().slice(-6)}.png`;
       link.click();
+      showToast('Ticket downloaded!', 'success');
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Could not generate ticket image. Please try again.');
+      showToast('Could not generate ticket', 'error');
     } finally {
       setDownloading(false);
     }
@@ -165,9 +181,9 @@ const UserDashboard = () => {
       const { data } = await api.put('/auth/profile', profileForm);
       setUserData(data);
       setEditMode(false);
-      alert('Profile updated successfully!');
+      showToast('Profile updated successfully!', 'success');
     } catch (err) {
-      alert(err.response?.data?.message || 'Update failed');
+      showToast(err.response?.data?.message || 'Update failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -202,30 +218,12 @@ const UserDashboard = () => {
   ];
 
   return (
-    <div className="dashboard-view animate-fade-in">
-      <div className="tabs" style={{ display: 'flex', gap: '16px', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-        <button 
-          className={`tab-btn ${currentTab === 'browse' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('browse')}
-          style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, padding: '8px 16px', cursor: 'pointer', borderBottom: currentTab === 'browse' ? '2px solid var(--primary)' : 'none', color: currentTab === 'browse' ? 'var(--primary)' : 'var(--text-muted)' }}
-        >
-          Book Appointment
-        </button>
-        <button 
-          className={`tab-btn ${currentTab === 'appointments' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('appointments')}
-          style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, padding: '8px 16px', cursor: 'pointer', borderBottom: currentTab === 'appointments' ? '2px solid var(--primary)' : 'none', color: currentTab === 'appointments' ? 'var(--primary)' : 'var(--text-muted)' }}
-        >
-          My Appointments
-        </button>
-        <button 
-          className={`tab-btn ${currentTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('profile')}
-          style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 600, padding: '8px 16px', cursor: 'pointer', borderBottom: currentTab === 'profile' ? '2px solid var(--primary)' : 'none', color: currentTab === 'profile' ? 'var(--primary)' : 'var(--text-muted)' }}
-        >
-          My Profile
-        </button>
-      </div>
+    <DashboardShell
+      currentTab={currentTab}
+      setCurrentTab={setCurrentTab}
+      user={userData}
+      role="user"
+    >
 
       {currentTab === 'browse' && (
         <div className="inline-wizard-layout">
@@ -377,7 +375,17 @@ const UserDashboard = () => {
               <div className="step-view animate-fade-in">
                 <h3 className="section-title">Select Your Expert</h3>
                 {loading ? (
-                  <p className="mt-4">Loading doctors...</p>
+                  <div className="doctor-select-grid mt-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="doctor-mini-card">
+                        <Skeleton variant="circle" width={48} height={48} />
+                        <div className="doctor-mini-info" style={{ flex: 1 }}>
+                          <Skeleton variant="text" width="60%" />
+                          <Skeleton variant="text" width="40%" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : availableProviders.length > 0 ? (
                   <div className="doctor-select-grid mt-4">
                     {availableProviders.map((p) => (
@@ -401,43 +409,68 @@ const UserDashboard = () => {
               </div>
             )}
 
-            {/* Step 6: Confirmation SMS */}
+            {/* Step 6: Confirmation SMS (Ultra Modern Pass) */}
             {step === 6 && (
-              <div className="step-view text-center animate-fade-in">
-                <MessageSquare size={48} className="primary-icon mb-4" />
-                <h3 className="section-title">Final Confirmation</h3>
-                <div className="mt-4 p-6 glass border-primary rounded-16">
-                  <p className="text-muted">An appointment confirmation will be sent to:</p>
-                  <h2 style={{ fontSize: '1.8rem', margin: '12px 0', color: 'var(--primary)' }}>
-                    {bookingData.phone || userData?.phone || 'Phone number not set'}
-                  </h2>
-                  <p className="helper-text">You can update your number in the Profile tab if it's incorrect.</p>
-                </div>
-                {!bookingData.success && selectedProvider && (
-                  <div className="mt-6">
-                    <p className="text-muted mb-4">Click below to finalize your booking with {selectedProvider?.userId?.name || 'your selected expert'}.</p>
-                  </div>
-                )}
-                {bookingData.success && (
-                  <div className="success-state animate-bounce-in mt-4">
-                    <CheckCircle size={64} className="success-icon mb-4" style={{ color: 'var(--success)' }} />
-                    <h2 style={{ color: 'var(--success)', margin: '16px 0' }}>Booking Successful!</h2>
-                    <p className="text-muted mb-6">Your appointment is confirmed. A mock SMS has been sent to {bookingData.phone}.</p>
-                    
-                    <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-                      <Button onClick={resetWizard} className="w-full" variant="secondary">View My Appointments</Button>
-                      {bookingData.success && (myAppointments[0]?.status === 'confirmed' || myAppointments[0]?.status === 'completed') && (
-                        <Button 
-                          onClick={() => handleDownloadTicket(myAppointments[0])} 
-                          className="w-full"
-                          loading={downloading}
-                        >
-                          Download
-                        </Button>
-                      )}
+              <div className="step-view text-center animate-fade-in modern-success-content">
+                <div className="health-pass-container">
+                  <div className="health-pass-card">
+                    <div className="pass-header">
+                      <div className="pass-live-indicator">
+                        <span className="live-dot"></span>
+                        {bookingData.success ? 'Confirmed / Active' : 'System Processing'}
+                      </div>
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Visit Pass</h3>
+                    </div>
+
+                    <div className="pass-body">
+                      <div className="pass-grid">
+                        <div className="pass-item">
+                          <label>Expert</label>
+                          <span>Dr. {selectedProvider?.userId?.name}</span>
+                        </div>
+                        <div className="pass-item">
+                          <label>Mode</label>
+                          <span>{bookingData.appointmentMode}</span>
+                        </div>
+                        <div className="pass-item">
+                          <label>Facility</label>
+                          <span style={{ fontSize: '0.8rem' }}>{selectedHospital?.name}</span>
+                        </div>
+                        <div className="pass-item">
+                          <label>Schedule</label>
+                          <span>{new Date(bookingData.date).toLocaleDateString()}</span>
+                        </div>
+                        <div className="pass-item" style={{ gridColumn: 'span 2', marginTop: '12px' }}>
+                          <label>Reserved Slots</label>
+                          <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>{bookingData.startTime} - {bookingData.endTime}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pass-footer">
+                      <div className="qr-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <Activity size={40} color="var(--primary)" style={{ opacity: 0.3 }} />
+                      </div>
                     </div>
                   </div>
-                )}
+
+                  {bookingData.success ? (
+                    <div className="success-message-area">
+                      <h2 className="gradient-text-success">Successful!</h2>
+                      <p className="text-muted">Your identity has been verified. A confirmation SMS is on its way.</p>
+                      
+                      <div className="modern-sms-box">
+                         <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>
+                           <span style={{ color: 'var(--primary)', fontWeight: 800 }}>SmartBook Alert:</span> Your visit to {selectedHospital?.name} is secured. Show this pass at the counter.
+                         </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pre-confirm-area">
+                      <p className="text-muted">Confirming booking for: <strong>{userData?.phone || 'registered number'}</strong></p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -487,215 +520,283 @@ const UserDashboard = () => {
       )}
 
       {currentTab === 'appointments' && (
-        <div className="appointments-list" style={{ display: 'grid', gap: '16px' }}>
-          <div className="section-header">
-             <h2>My Appointments</h2>
-             <p className="text-muted">Manage your upcoming and past medical visits.</p>
-          </div>
-          {myAppointments.length > 0 ? (
-            myAppointments.map((appointment) => (
-              <Card key={appointment._id} className="appointment-card" hoverEffect={false}>
-                <div className="appointment-user">
-                  <User size={20} className="primary-icon" />
-                  <div>
-                    <h3>{appointment.providerId?.userId?.name || 'Doctor'}</h3>
-                    <p className="detail-item"><Clock size={14} /> {appointment.startTime} - {appointment.endTime}</p>
-                    <p className="detail-item"><Calendar size={14} /> {new Date(appointment.date).toLocaleDateString()}</p>
-                    {appointment.hospitalId && (
-                      <p className="detail-item" style={{ marginTop: '4px', fontSize: '0.85rem' }}>
-                        <MapPin size={12} /> {appointment.hospitalState} - {appointment.department}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="appointment-status">
-                  <span className={`status-badge status-${appointment.status}`}>
-                    {appointment.status}
-                  </span>
-                </div>
-                {(appointment.status === 'confirmed' || appointment.status === 'completed') && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleDownloadTicket(appointment)}
-                    style={{ marginTop: '12px' }}
-                  >
-                    Download
-                  </Button>
-                )}
-              </Card>
-            ))
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '16px' }}>
-              <Calendar size={48} className="primary-icon" style={{ opacity: 0.5, marginBottom: '16px' }} />
-              <h3>No Appointments Yet</h3>
-              <p style={{ color: 'var(--text-muted)' }}>You haven't booked any appointments.</p>
-              <Button style={{ marginTop: '16px' }} onClick={() => setCurrentTab('browse')}>Start Booking</Button>
+        <div className="appointments-view animate-fade-in">
+          <div className="section-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>My Appointments</h2>
+              <p className="text-muted">Manage your upcoming and past medical visits</p>
             </div>
-          )}
+            <button className="btn btn-primary" onClick={() => setCurrentTab('browse')}>+ Book New</button>
+          </div>
+
+          <div className="appointments-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {myAppointments.length > 0 ? (
+              myAppointments.map(appt => (
+                <AppointmentListCard 
+                  key={appt._id} 
+                  appointment={appt} 
+                  role="user"
+                  onAction={handleApptAction}
+                  onDownload={handleDownloadTicket}
+                />
+              ))
+            ) : (
+              <div className="tc py-12 glass-stat">
+                <Calendar size={48} className="text-muted mb-4" style={{ opacity: 0.5 }} />
+                <h3>No appointments found</h3>
+                <p className="text-muted">You haven't booked any appointments yet.</p>
+                <button className="btn btn-primary mt-6" onClick={() => setCurrentTab('browse')}>Start Booking</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {currentTab === 'profile' && userData && (
-        <div className="profile-section animate-fade-in">
-          <Card className="profile-card glass" hoverEffect={false}>
-            <div className="profile-header-meta">
-              <div className="profile-avatar-wrapper">
-                <img src={profileForm.avatar || userData.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} alt={userData.name} className="profile-avatar-large" />
-                {editMode && (
-                  <div className="avatar-edit-overlay">
-                    <label className="avatar-upload-btn">
-                      Change Photo
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            // Check file size (limit to ~2MB to prevent MongoDB document size issues)
-                            if (file.size > 2 * 1024 * 1024) {
-                              alert('Image must be less than 2MB');
-                              return;
-                            }
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setProfileForm({...profileForm, avatar: reader.result});
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-              <div className="profile-title">
-                <h2>{userData.name}</h2>
-                <p className="role-badge">{userData.role.toUpperCase()}</p>
-              </div>
-              {!editMode && (
-                <Button variant="outline" className="ml-auto" onClick={() => setEditMode(true)}>
-                  Edit Profile
-                </Button>
+        <div className="modern-profile-shell animate-slide-up">
+          {/* LEFT COLUMN: Identity Sidebar */}
+          <div className="profile-sidebar-card">
+            <div className="profile-avatar-giant-box">
+              <img 
+                src={profileForm.avatar || userData.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} 
+                alt={userData.name} 
+                className="profile-avatar-giant" 
+              />
+              {editMode && (
+                <label className="avatar-edit-glare">
+                  <Camera size={20} />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setProfileForm({...profileForm, avatar: reader.result});
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
               )}
             </div>
+            
+            <h2>{userData.name}</h2>
+            <p className="user-email">{userData.email}</p>
 
-            <form onSubmit={handleUpdateProfile} className="profile-details-grid mt-6">
-              <div className="profile-info-group">
-                <label><User size={16} /> Full Name</label>
-                {editMode ? (
-                  <InputField value={profileForm.name} onChange={(e) => setProfileForm({...profileForm, name: e.target.value})} />
-                ) : (
-                  <p>{userData.name}</p>
-                )}
+            <div className="profile-progress-widget">
+              <div className="progress-label-row">
+                <span>Identity Completion</span>
+                <span>{Math.round((Object.values({
+                  phone: userData.phone,
+                  age: userData.age,
+                  bloodGroup: userData.bloodGroup,
+                  state: userData.state,
+                  address: userData.address
+                }).filter(Boolean).length / 5) * 100)}%</span>
               </div>
-
-              <div className="profile-info-group">
-                <label>Email Address</label>
-                <p>{userData.email}</p>
-                <span className="helper-text">Email cannot be changed</span>
+              <div className="progress-bar-rail">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: `${(Object.values({
+                    phone: userData.phone,
+                    age: userData.age,
+                    bloodGroup: userData.bloodGroup,
+                    state: userData.state,
+                    address: userData.address
+                  }).filter(Boolean).length / 5) * 100}%` }}
+                ></div>
               </div>
+            </div>
 
-              <div className="profile-info-group">
-                <label><Phone size={16} /> Phone Number</label>
-                {editMode ? (
-                  <InputField value={profileForm.phone} onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} />
-                ) : (
-                  <p>{userData.phone || 'Not set'}</p>
-                )}
+            <div className="profile-summary-vitals">
+              <div className="mini-vital-box">
+                <label>Vitals</label>
+                <span className="blood-group-tag">{userData.bloodGroup || 'N/A'}</span>
               </div>
-
-              <div className="profile-info-group">
-                <label><Calendar size={16} /> Age</label>
-                {editMode ? (
-                  <InputField type="number" value={profileForm.age} onChange={(e) => setProfileForm({...profileForm, age: e.target.value})} />
-                ) : (
-                  <p>{userData.age || 'Not set'}</p>
-                )}
+              <div className="mini-vital-box">
+                <label>Age</label>
+                <span>{userData.age || '--'} Yrs</span>
               </div>
+            </div>
 
-              <div className="profile-info-group">
-                <label><Star size={16} /> Blood Group</label>
-                {editMode ? (
-                  <select 
-                    className="input-field" 
-                    value={profileForm.bloodGroup} 
-                    onChange={(e) => setProfileForm({...profileForm, bloodGroup: e.target.value})}
-                  >
-                    <option value="">Select...</option>
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                      <option key={bg} value={bg}>{bg}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="blood-group-tag">{userData.bloodGroup || 'Not set'}</p>
-                )}
+            {!editMode ? (
+              <Button 
+                variant="primary" 
+                className="w-full mt-8" 
+                onClick={() => setEditMode(true)}
+                style={{ borderRadius: '16px', padding: '14px' }}
+              >
+                <Edit3 size={18} className="mr-2" /> Edit Profile
+              </Button>
+            ) : (
+              <p className="mt-8 text-xs font-bold text-muted uppercase tracking-widest">Editing Mode Active</p>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: Information Content */}
+          <form onSubmit={handleUpdateProfile} className="profile-main-content">
+            {/* MEDICAL PACK */}
+            <div className="info-pack-card animate-slide-up animate-delay-1">
+              <div className="pack-header">
+                <Activity size={22} />
+                <h3>Medical Identity</h3>
               </div>
+              
+              <div className="pack-grid">
+                <div className="modern-field-group">
+                  <label><Calendar size={16} /> Biological Age</label>
+                  {editMode ? (
+                    <InputField 
+                      type="number" 
+                      value={profileForm.age} 
+                      onChange={(e) => setProfileForm({...profileForm, age: e.target.value})} 
+                      placeholder="e.g. 28"
+                    />
+                  ) : (
+                    <div className="modern-value-display">{userData.age ? `${userData.age} Years Old` : 'Not Set'}</div>
+                  )}
+                </div>
 
-              <div className="profile-info-group">
-                <label><MapPin size={16} /> Home State</label>
-                {editMode ? (
-                  <select
-                    className="input-field"
-                    value={profileForm.state}
-                    onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
-                    style={{ paddingLeft: '12px' }}
-                  >
-                    <option value="">Select State</option>
-                    {[
-                      "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
-                      "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", 
-                      "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
-                      "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", 
-                      "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
-                      "Uttarakhand", "West Bengal",
-                      "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
-                      "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-                    ].sort().map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                ) : <p>{userData.state || 'Not set'}</p>}
+                <div className="modern-field-group">
+                  <label><Shield size={16} /> Blood Type</label>
+                  {editMode ? (
+                    <select 
+                      className="input-field" 
+                      style={{ height: '52px', borderRadius: '16px' }}
+                      value={profileForm.bloodGroup} 
+                      onChange={(e) => setProfileForm({...profileForm, bloodGroup: e.target.value})}
+                    >
+                      <option value="">Select Group</option>
+                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="modern-value-display">
+                      {userData.bloodGroup ? (
+                        <span className="blood-type-ribbon">{userData.bloodGroup} Positive</span>
+                      ) : (
+                        'Not Specified'
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
 
-              <div className="profile-info-group full-width" style={{ gridColumn: '1 / -1' }}>
-                <label><MapPin size={16} /> Full Address</label>
-                {editMode ? (
-                  <InputField 
-                    value={profileForm.address} 
-                    onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} 
-                    placeholder="Street, Building, Area..."
-                  />
-                ) : <p>{userData.address || 'Not set'}</p>}
+            {/* CONTACT PACK */}
+            <div className="info-pack-card animate-slide-up animate-delay-2">
+              <div className="pack-header">
+                <Phone size={22} />
+                <h3>Communication</h3>
+              </div>
+              
+              <div className="pack-grid">
+                <div className="modern-field-group">
+                  <label><Phone size={16} /> Primary Phone</label>
+                  {editMode ? (
+                    <InputField 
+                      value={profileForm.phone} 
+                      onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} 
+                      placeholder="+91 XXXXX XXXXX"
+                    />
+                  ) : (
+                    <div className="modern-value-display">{userData.phone || 'No phone linked'}</div>
+                  )}
+                </div>
+
+                <div className="modern-field-group">
+                  <label><Mail size={16} /> Recovery email</label>
+                  <div className="modern-value-display" style={{ opacity: 0.6 }}>{userData.email}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ADDRESS PACK */}
+            <div className="info-pack-card animate-slide-up animate-delay-3">
+              <div className="pack-header">
+                <MapPin size={22} />
+                <h3>Residency</h3>
+              </div>
+              
+              <div className="pack-grid" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="modern-field-group">
+                  <label>State & Region</label>
+                  {editMode ? (
+                    <select
+                      className="input-field"
+                      style={{ height: '52px', borderRadius: '16px' }}
+                      value={profileForm.state}
+                      onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
+                    >
+                      <option value="">Select Region</option>
+                      {[
+                        "Andhra Pradesh", "Assam", "Bihar", "Gujarat", "Haryana", "Karnataka", 
+                        "Kerala", "Madhya Pradesh", "Maharashtra", "Punjab", "Rajasthan", 
+                        "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal", "Delhi"
+                      ].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  ) : (
+                    <div className="modern-value-display">{userData.state || 'Region not set'}</div>
+                  )}
+                </div>
+
+                <div className="modern-field-group">
+                  <label>Street Address</label>
+                  {editMode ? (
+                    <InputField 
+                      value={profileForm.address} 
+                      onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} 
+                      placeholder="Detailed address..."
+                    />
+                  ) : (
+                    <div className="modern-value-display">{userData.address || 'Address not registered'}</div>
+                  )}
+                </div>
               </div>
 
               {editMode && (
-                <div className="profile-actions-footer mt-6">
-                  <Button type="button" variant="secondary" onClick={() => {
-                    setEditMode(false);
-                    setProfileForm({
-                      name: userData.name,
-                      phone: userData.phone || '',
-                      age: userData.age || '',
-                      bloodGroup: userData.bloodGroup || '',
-                      avatar: userData.avatar || '',
-                      state: userData.state || '',
-                      address: userData.address || ''
-                    });
-                  }}>Cancel</Button>
-                  <Button type="submit" loading={loading}>Save Changes</Button>
+                <div className="profile-footer-actions">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => {
+                      setEditMode(false);
+                      setProfileForm({
+                        name: userData.name,
+                        phone: userData.phone || '',
+                        age: userData.age || '',
+                        bloodGroup: userData.bloodGroup || '',
+                        avatar: userData.avatar || '',
+                        state: userData.state || '',
+                        address: userData.address || ''
+                      });
+                    }}
+                    style={{ borderRadius: '12px' }}
+                  >
+                    Discard Changes
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    loading={loading} 
+                    variant="primary"
+                    style={{ borderRadius: '12px', padding: '10px 24px' }}
+                  >
+                    Save Identity
+                  </Button>
                 </div>
               )}
-            </form>
-          </Card>
+            </div>
+          </form>
         </div>
       )}
       {/* Global Hidden Ticket for Export */}
       <div style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
          {ticketData && <AppointmentCard appointment={ticketData} cardRef={cardRef} />}
       </div>
-    </div>
+    </DashboardShell>
   );
 };
 

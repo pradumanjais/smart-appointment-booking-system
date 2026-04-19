@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, User, Activity, Phone, Download, CheckCircle, XCircle, MoreVertical, Shield } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Activity, Phone, Download, CheckCircle, XCircle, MoreVertical, Shield, RefreshCw } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import './dashboard-components.css';
 
@@ -7,7 +7,8 @@ const AppointmentListCard = ({
   appointment, 
   role, 
   onAction, 
-  onDownload 
+  onDownload,
+  onFollowUp
 }) => {
   if (!appointment) return null;
 
@@ -32,7 +33,9 @@ const AppointmentListCard = ({
         <div className="appt-details-brief">
           <div className="appt-name-row">
             <h3>{isProvider ? '' : 'Dr. '}{personName}</h3>
-            <span className="appt-type-tag">{appointment.appointmentType}</span>
+            <span className={`appt-type-tag type-${appointment.appointmentType?.toLowerCase().replace(' ', '-')}`}>
+              {appointment.appointmentType}
+            </span>
           </div>
           
           <div className="appt-meta-grid">
@@ -69,24 +72,7 @@ const AppointmentListCard = ({
         <StatusBadge status={appointment.status} />
         
         <div className="btn-group-sm">
-          {isProvider && appointment.status === 'pending' && (
-            <>
-              <button 
-                className="btn-icon btn-outline-success" 
-                onClick={() => onAction(appointment._id, 'confirmed')}
-                title="Accept"
-              >
-                <CheckCircle size={20} />
-              </button>
-              <button 
-                className="btn-icon btn-outline-danger" 
-                onClick={() => onAction(appointment._id, 'cancelled')}
-                title="Decline"
-              >
-                <XCircle size={20} />
-              </button>
-            </>
-          )}
+          {/* Manual confirmation UI purged; validation now strictly enforces hourly slots auto-confirm. */}
 
           {isProvider && appointment.status === 'confirmed' && (
             <button 
@@ -107,14 +93,24 @@ const AppointmentListCard = ({
               <Download size={16} /> Get Ticket
             </button>
           )}
+
+          {!isProvider && appointment.status === 'completed' && onFollowUp && (
+            <button 
+              className="btn btn-sm btn-emerald" 
+              onClick={() => onFollowUp(appointment)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '12px' }}
+            >
+              <RefreshCw size={16} /> Follow-up
+            </button>
+          )}
           
-          {appointment.status === 'pending' && !isProvider && (
+          {(appointment.status === 'pending' || appointment.status === 'confirmed') && !isProvider && (
              <button 
               className="btn btn-sm btn-outline-danger" 
               onClick={() => onAction(appointment._id, 'cancelled')}
               style={{ padding: '8px 16px', borderRadius: '12px' }}
             >
-              Cancel Request
+              Cancel
             </button>
           )}
         </div>

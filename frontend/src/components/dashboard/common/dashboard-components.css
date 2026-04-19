@@ -164,13 +164,105 @@
 
 .appt-type-tag {
   padding: 4px 10px;
-  background: #f1f5f9;
   border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: #64748b;
   letter-spacing: 0.5px;
+}
+
+.type-new {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.type-follow-up {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #10b98144;
+}
+
+.btn-emerald {
+  background: #10b981;
+  color: white;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  transition: all 0.3s ease;
+}
+
+.btn-emerald:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1.5px solid #ef4444 !important;
+  color: #ef4444;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-danger:hover {
+  background: #ef4444;
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+.modern-context-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+  border-radius: 12px;
+  color: #1e40af;
+  font-size: 0.9rem;
+}
+
+.modern-context-badge strong {
+  color: var(--primary);
+  margin-left: 4px;
+}
+
+.suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.suggestion-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.suggestion-chip.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.suggestion-chip.large {
+  padding: 12px 24px;
+  font-size: 1rem;
+  border-radius: 14px;
 }
 
 .appt-meta-grid {

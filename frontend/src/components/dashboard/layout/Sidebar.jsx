@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Calendar, User, PlusSquare, LogOut, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, User, PlusSquare, LogOut, Activity, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const Sidebar = ({ currentTab, setCurrentTab, user, role }) => {
+const Sidebar = ({ currentTab, setCurrentTab, user, role, handleLogout }) => {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const userMenu = [
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'browse', label: 'Book Experts', icon: PlusSquare },
     { id: 'appointments', label: 'My Schedule', icon: Calendar },
     { id: 'profile', label: 'Health Passport', icon: User },
@@ -19,21 +20,18 @@ const Sidebar = ({ currentTab, setCurrentTab, user, role }) => {
 
   const menu = role === 'provider' ? providerMenu : userMenu;
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/';
-  };
-
   return (
     <aside className={`sidebar-wrapper ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-glass">
-        <div className="sidebar-brand">
+        <div className="sidebar-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <Activity size={24} className="brand-logo" />
           {!isCollapsed && <span className="brand-name">MedContext</span>}
           <button 
             className="collapse-toggle" 
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCollapsed(!isCollapsed);
+            }}
             aria-label="Toggle Sidebar"
           >
             {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

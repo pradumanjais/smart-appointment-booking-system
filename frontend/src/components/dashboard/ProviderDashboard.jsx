@@ -8,12 +8,14 @@ import InputField from '../common/InputField';
 import Skeleton from '../common/Skeleton';
 import StatCard from './common/StatCard';
 import AppointmentListCard from './common/AppointmentListCard';
+import DailyScheduleCalendar from './common/DailyScheduleCalendar';
 import { useToast } from '../../context/ToastContext';
-import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Award, DollarSign } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Award, DollarSign, List, Grid } from 'lucide-react';
 
-const ProviderDashboard = () => {
+const ProviderDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
   const [currentTab, setCurrentTab] = useState('appointments');
+  const [viewMode, setViewMode] = useState('list');
   const [appointments, setAppointments] = useState([]);
   const [providerData, setProviderData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ const ProviderDashboard = () => {
   const [hospitals, setHospitals] = useState([]);
   const [saving, setSaving] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    hospitalState: '', hospitalId: '', specialization: '', experience: 0, pricePerHour: 0, bio: '', location: '', availability: []
+    hospitalState: '', hospitalId: '', specialization: '', experience: 0, pricePerHour: 0, slotsPerHour: 1, bio: '', location: '', availability: []
   });
 
   useEffect(() => {
@@ -31,7 +33,12 @@ const ProviderDashboard = () => {
       // Fetch Appointments
       try {
         const { data } = await api.get('/bookings/provider-appointments');
-        setAppointments(data);
+        const sortedAppts = data.sort((a, b) => {
+          const dateComparison = new Date(b.date) - new Date(a.date);
+          if (dateComparison !== 0) return dateComparison;
+          return b.startTime.localeCompare(a.startTime);
+        });
+        setAppointments(sortedAppts);
       } catch (err) {
         console.error('Error fetching appointments:', err);
       }
@@ -50,6 +57,7 @@ const ProviderDashboard = () => {
               userId: userRes.data,
               hospitalId: null,
               specialization: 'Not configured',
+              slotsPerHour: 1,
               availability: []
             });
           } catch (fallbackErr) {
@@ -92,6 +100,7 @@ const ProviderDashboard = () => {
       specialization: providerData?.specialization || '',
       experience: providerData?.experience || 0,
       pricePerHour: providerData?.pricePerHour || 0,
+      slotsPerHour: providerData?.slotsPerHour || 1,
       bio: providerData?.bio || '',
       location: providerData?.location || '',
       availability: providerData?.availability ? [...providerData.availability] : []
@@ -162,114 +171,153 @@ const ProviderDashboard = () => {
       setCurrentTab={setCurrentTab}
       user={providerData?.userId}
       role="provider"
+      handleLogout={handleLogout}
     >
 
       {currentTab === 'appointments' && (
-        <div className="dashboard-split mt-6">
-          {/* MAIN COLUMN */}
-          <div className="main-content">
-            <div className="stats-container">
-              <StatCard 
-                label="Today's Appointments" 
-                value={appointments.filter(a => new Date(a.date).toLocaleDateString() === new Date().toLocaleDateString()).length}
-                icon={Calendar}
-                variant="indigo"
-              />
-              <StatCard 
-                label="Pending Requests" 
-                value={appointments.filter(a => a.status === 'pending').length}
-                icon={Activity}
-                variant="amber"
-              />
-              <StatCard 
-                label="Completion Rate" 
-                value={`${calculateCompletionRate()}%`}
-                icon={TrendingUp}
-                variant="emerald"
-              />
-              <StatCard 
-                label="Expert Rating" 
-                value="4.9"
-                icon={Star}
-                variant="rose"
-              />
-            </div>
+        <div className="dashboard-overview animate-fade-in" style={{ marginTop: '24px' }}>
+          {/* Enhanced Header */}
+          <div className="overview-header" style={{ marginBottom: '40px' }}>
+            <h1 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>
+              Welcome back, <span className="text-gradient">Dr. {providerData?.userId?.name?.split(' ')[0]}</span>!
+            </h1>
+            <p className="text-muted" style={{ fontSize: '1.2rem', fontWeight: 500 }}>Global operations and daily schedule control center.</p>
+          </div>
 
-            <div className="appointments-section">
+          <div className="dashboard-split">
+            {/* MAIN COLUMN */}
+            <div className="main-content">
+              <div className="stats-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+                <StatCard 
+                  label="Daily Schedule" 
+                  value={appointments.filter(a => new Date(a.date).toLocaleDateString() === new Date().toLocaleDateString()).length}
+                  icon={Calendar}
+                  variant="indigo"
+                />
+                <StatCard 
+                  label="Success Rate" 
+                  value={`${calculateCompletionRate()}%`}
+                  icon={TrendingUp}
+                  variant="emerald"
+                />
+                <StatCard 
+                  label="Patient Score" 
+                  value="4.9 / 5.0"
+                  icon={Star}
+                  variant="rose"
+                />
+              </div>
+
+            <div className="appointments-section glass-stat" style={{ padding: '32px', borderRadius: '28px', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
               <div className="panel-header" style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                   <h2 style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.5px' }}>Daily Schedule</h2>
-                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Manage your medical operations for today</p>
+                   <h2 style={{ fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#0f172a' }}>Daily Schedule</h2>
+                   <p style={{ color: '#64748b', fontSize: '0.95rem', fontWeight: 600 }}>Real-time medical activity monitoring</p>
                 </div>
-                <div className="meta-info">
-                  <span className="badge-pill bg-primary-light text-primary" style={{ padding: '8px 16px', borderRadius: '12px' }}>
-                    {appointments.filter(a => a.status === 'confirmed').length} Active Appointments
-                  </span>
+                
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <div className="view-switcher-premium">
+                    <button 
+                      className={`switch-btn-p ${viewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setViewMode('list')}
+                    >
+                      <List size={16} />
+                    </button>
+                    <button 
+                      className={`switch-btn-p ${viewMode === 'calendar' ? 'active' : ''}`}
+                      onClick={() => setViewMode('calendar')}
+                    >
+                      <Grid size={16} />
+                    </button>
+                  </div>
+                  <div className="meta-info hide-mobile">
+                    <span className="badge-premium" style={{ border: '1.5px solid var(--primary-light)', color: 'var(--primary)', padding: '8px 16px', borderRadius: '14px', fontSize: '0.8rem', fontWeight: 800 }}>
+                      {appointments.filter(a => a.status === 'confirmed').length} Active Visits
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="timeline-list">
-                {loading ? (
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                     {[1, 2, 3].map(i => (
-                       <Skeleton key={i} variant="rect" height={120} />
-                     ))}
-                   </div>
-                ) : appointments.length > 0 ? (
-                  appointments.map((appointment) => (
-                    <AppointmentListCard 
-                      key={appointment._id} 
-                      appointment={appointment} 
-                      role="provider"
-                      onAction={handleStatusUpdate}
-                    />
-                  ))
-                ) : (
-                  <div className="tc py-12 glass-stat" style={{ borderRadius: '24px' }}>
-                     <Calendar size={64} className="text-muted mb-4" style={{ opacity: 0.2 }} />
-                     <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Clear Schedule</h3>
-                     <p className="text-muted">You have no appointments scheduled for today.</p>
-                  </div>
-                )}
-              </div>
+              {viewMode === 'calendar' ? (
+                <DailyScheduleCalendar 
+                  appointments={appointments} 
+                  providerData={providerData} 
+                />
+              ) : (
+                <div className="timeline-list">
+                  {loading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {[1, 2, 3].map(i => (
+                        <Skeleton key={i} variant="rect" height={120} />
+                      ))}
+                    </div>
+                  ) : appointments.length > 0 ? (
+                    appointments.map((appointment) => (
+                      <AppointmentListCard 
+                        key={appointment._id} 
+                        appointment={appointment} 
+                        role="provider"
+                        onAction={handleStatusUpdate}
+                      />
+                    ))
+                  ) : (
+                    <div className="tc py-12 glass-stat" style={{ borderRadius: '24px' }}>
+                      <Calendar size={64} className="text-muted mb-4" style={{ opacity: 0.2 }} />
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Clear Schedule</h3>
+                      <p className="text-muted">You have no appointments scheduled.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
         {/* SIDE PANEL */}
         <div className="side-panel">
-          <Card className="glass-stat" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Activity size={18} color="var(--primary)" /> Recent Activity
-            </h3>
+          <div className="glass-stat sidebar-card-premium" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px', background: 'white', border: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: 'var(--primary-light)', padding: '10px', borderRadius: '12px' }}>
+                <Activity size={20} color="var(--primary)" />
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0, letterSpacing: '-0.3px' }}>Recent Activity</h3>
+            </div>
+            
             <div className="activity-feed">
               {getRecentActivity().length > 0 ? getRecentActivity().map(act => (
-                <div key={act._id} className="activity-item">
-                  <div className="item-icon" style={{ background: act.status === 'confirmed' ? '#dcfce7' : act.status === 'cancelled' ? '#fee2e2' : '#f0f0f0' }}>
-                    {act.status === 'confirmed' ? <CheckCircle size={14} color="#166534" /> : act.status === 'cancelled' ? <XCircle size={14} color="#991b1b" /> : <Activity size={14} />}
+                <div key={act._id} className="activity-item-premium" style={{ display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
+                  <div className="item-icon-circle" style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', background: act.status === 'confirmed' ? '#ecfdf5' : act.status === 'cancelled' ? '#fef2f2' : '#f8fafc' }}>
+                    {act.status === 'confirmed' ? <CheckCircle size={14} color="#10b981" /> : act.status === 'cancelled' ? <XCircle size={14} color="#ef4444" /> : <Activity size={14} />}
                   </div>
-                  <div>
-                    <p style={{ fontWeight: 600, margin: 0 }}>{act.status.charAt(0).toUpperCase() + act.status.slice(1)}</p>
-                    <p style={{ margin: 0, opacity: 0.7 }}>Appointment with {act.userId?.name}</p>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 800, margin: 0, fontSize: '0.9rem', color: '#0f172a' }}>{act.status.charAt(0).toUpperCase() + act.status.slice(1)}</p>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{act.userId?.name.split(' ')[0]} • {new Date(act.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                   </div>
                 </div>
-              )) : <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No recent status changes.</p>}
+              )) : <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>No recent activity found.</p>}
             </div>
-          </Card>
+          </div>
           
-          <Card className="glass-stat" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Star size={18} color="#fbbf24" /> Quick Tips
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              Keep your availability updated to receive more booking requests from patients.
+          <div className="glass-stat sidebar-card-premium" style={{ padding: '24px', borderRadius: '24px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', color: 'white' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <Star size={20} color="#fbbf24" fill="#fbbf24" />
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>Expert Tips</h3>
+            </div>
+            <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6', marginBottom: '24px' }}>
+              Your profile completion is key to ranking higher in patient search results. 
             </p>
-            <Button variant="outline" size="sm" style={{ marginTop: '12px', width: '100%' }} onClick={() => setCurrentTab('profile')}>
-              Update Profile
-            </Button>
-          </Card>
+            <button 
+              className="btn btn-emerald w-full" 
+              style={{ padding: '12px', borderRadius: '14px', fontSize: '0.9rem', fontWeight: 800 }}
+              onClick={() => setCurrentTab('profile')}
+            >
+              Master Identity
+            </button>
+          </div>
         </div>
       </div>
-    )}
+    </div>
+  )
+}
 
       {currentTab === 'profile' && providerData && (
         <div className="modern-profile-shell animate-slide-up">
@@ -308,6 +356,10 @@ const ProviderDashboard = () => {
               <div className="specialist-vital-pill">
                 <label>Consult Fee</label>
                 <span>${providerData.pricePerHour}</span>
+              </div>
+              <div className="specialist-vital-pill" style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)' }}>
+                <label style={{ color: 'var(--primary)' }}>Hourly Capacity</label>
+                <span style={{ color: 'var(--primary)' }}>{providerData.slotsPerHour || 1} Slots</span>
               </div>
             </div>
 
@@ -372,6 +424,44 @@ const ProviderDashboard = () => {
               <div className="pack-header">
                 <Clock size={22} />
                 <h3>Operational Planner</h3>
+              </div>
+
+              {/* Throughput Capacity Configuration */}
+              <div className="capacity-config-row mb-8 p-4 glass-stat" style={{ borderRadius: '20px', border: '1px solid var(--primary-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Throughput Capacity</h4>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.7 }}>How many appointments can be booked per hour?</p>
+                  </div>
+                  {isEditing ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <select 
+                        className="input-field" 
+                        style={{ width: '80px', height: '40px', borderRadius: '10px', textAlign: 'center' }}
+                        value={editFormData.slotsPerHour}
+                        onChange={(e) => setEditFormData({...editFormData, slotsPerHour: parseInt(e.target.value)})}
+                      >
+                        {[1,2,3,4,5,6,8,10,12,15].map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>slots</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div className="status-badge-unified sb-confirmed" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
+                        {providerData.slotsPerHour || 1} Appointments / Hr
+                      </div>
+                      <button 
+                        onClick={handleEditClick}
+                        className="btn-pill"
+                        style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', cursor: 'pointer' }}
+                      >
+                        Adjust
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="availability-planner-container">

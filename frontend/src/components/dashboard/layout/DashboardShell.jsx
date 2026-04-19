@@ -2,7 +2,7 @@ import Sidebar from './Sidebar';
 import { Calendar, Search, Bell, ShieldCheck, Settings } from 'lucide-react';
 import './dashboard-layout.css';
 
-const DashboardShell = ({ children, currentTab, setCurrentTab, user, role }) => {
+const DashboardShell = ({ children, currentTab, setCurrentTab, user, role, handleLogout }) => {
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -17,6 +17,7 @@ const DashboardShell = ({ children, currentTab, setCurrentTab, user, role }) => 
         setCurrentTab={setCurrentTab} 
         user={user} 
         role={role} 
+        handleLogout={handleLogout}
       />
       
       <main className="main-content-wrapper">
@@ -37,11 +38,11 @@ const DashboardShell = ({ children, currentTab, setCurrentTab, user, role }) => 
               </div>
 
               <div className="header-actions">
-                <div className="action-ic-wrapper tooltip" data-tooltip="Notifications">
+                <div className="action-ic-wrapper tooltip tooltip-bottom" data-tooltip="Notifications">
                   <Bell size={20} />
                   <span className="notification-dot"></span>
                 </div>
-                <div className="action-ic-wrapper status-online tooltip" data-tooltip="Connected">
+                <div className="action-ic-wrapper status-online tooltip tooltip-bottom" data-tooltip="Status: Connected">
                    <ShieldCheck size={20} />
                 </div>
               </div>

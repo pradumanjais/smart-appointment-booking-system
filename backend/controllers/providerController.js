@@ -38,7 +38,7 @@ const getProviderById = async (req, res) => {
 // @access  Private/Provider
 const updateProviderProfile = async (req, res) => {
   try {
-    const { specialization, experience, pricePerHour, availability, bio, location, hospitalId } = req.body;
+  const { specialization, experience, pricePerHour, slotsPerHour, availability, bio, location, hospitalId } = req.body;
 
     let provider = await Provider.findOne({ userId: req.user.id });
 
@@ -46,7 +46,7 @@ const updateProviderProfile = async (req, res) => {
       // Update
       provider = await Provider.findOneAndUpdate(
         { userId: req.user.id },
-        { specialization, experience, pricePerHour, availability, bio, location, hospitalId },
+        { specialization, experience, pricePerHour, slotsPerHour, availability, bio, location, hospitalId },
         { new: true, runValidators: true }
       );
     } else {
@@ -56,6 +56,7 @@ const updateProviderProfile = async (req, res) => {
         specialization,
         experience,
         pricePerHour,
+        slotsPerHour,
         availability,
         bio,
         location,

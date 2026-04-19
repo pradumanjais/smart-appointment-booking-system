@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, UserPlus, Phone, Eye, EyeOff, Calendar, Droplet, MapPin } from 'lucide-react';
+import { User, Mail, Lock, UserPlus, Phone, Eye, EyeOff, Calendar, Droplet, MapPin, PlusSquare } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
@@ -95,20 +95,31 @@ const Register = ({ setUser }) => {
             value={formData.phone}
             onChange={handleChange}
           />
-          <div className="input-wrapper">
-            <label className="input-label">I am a...</label>
-            <div className="input-container">
-              <select
-                name="role"
-                className="input-field"
-                value={formData.role}
-                onChange={handleChange}
-              >
-                <option value="user">Patient / Customer</option>
-                <option value="provider">Service Provider</option>
-              </select>
+        <div className="identity-selector-group">
+          <label className="input-label">Select Your Identity</label>
+          <div className="role-selection-grid">
+            <div 
+              className={`role-tile ${formData.role === 'user' ? 'selected' : ''}`}
+              onClick={() => setFormData({...formData, role: 'user'})}
+            >
+              <div className="role-tile-icon"><User size={24} /></div>
+              <div className="role-tile-text">
+                <strong>Patient</strong>
+                <span>Find & book care</span>
+              </div>
+            </div>
+            <div 
+              className={`role-tile ${formData.role === 'provider' ? 'selected' : ''}`}
+              onClick={() => setFormData({...formData, role: 'provider'})}
+            >
+              <div className="role-tile-icon"><PlusSquare size={24} /></div>
+              <div className="role-tile-text">
+                <strong>Provider</strong>
+                <span>Manage practice</span>
+              </div>
             </div>
           </div>
+        </div>
         </div>
         <div className="form-row">
           <div className="input-wrapper">

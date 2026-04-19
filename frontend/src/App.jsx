@@ -7,6 +7,7 @@ import ProviderDashboard from './components/dashboard/ProviderDashboard';
 import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/layout/Navbar';
 import LandingPage from './components/layout/LandingPage';
+import Footer from './components/layout/Footer';
 import './App.css';
 import './components/ui/ui.css';
 
@@ -21,13 +22,7 @@ const PageLayout = ({ user, handleLogout, children }) => {
       <main className={!isDashboard ? 'content' : 'dashboard-main-content'}>
         {children}
       </main>
-      {!isDashboard && (
-        <footer className="footer shadow-lg">
-          <div className="container footer-content">
-            <p>&copy; 2026 Smart Appointment Booking System. All rights reserved.</p>
-          </div>
-        </footer>
-      )}
+      {!isDashboard && <Footer />}
     </div>
   );
 };
@@ -71,7 +66,9 @@ function App() {
               path="/dashboard" 
               element={
                 user ? (
-                  user.role === 'provider' ? <ProviderDashboard /> : <UserDashboard />
+                  user.role === 'provider' ? 
+                    <ProviderDashboard handleLogout={handleLogout} /> : 
+                    <UserDashboard handleLogout={handleLogout} />
                 ) : (
                   <Navigate to="/login" />
                 )

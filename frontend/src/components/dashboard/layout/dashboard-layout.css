@@ -56,6 +56,7 @@
 .brand-logo {
   color: var(--primary);
   filter: drop-shadow(0 4px 6px rgba(var(--primary-rgb), 0.3));
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .brand-name {
@@ -64,7 +65,18 @@
   font-size: 1.35rem;
   letter-spacing: -0.5px;
   color: #0f172a;
+  transition: all 0.3s ease;
 }
+
+.sidebar-brand:hover .brand-logo {
+  transform: scale(1.1) rotate(5deg);
+  color: var(--secondary, #0ea5e9);
+}
+
+.sidebar-brand:hover .brand-name {
+  color: var(--primary);
+}
+
 
 .collapse-toggle {
   position: absolute;
@@ -160,6 +172,12 @@
   backdrop-filter: blur(8px);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
 .header-search-box {
   display: flex;
   align-items: center;
@@ -181,10 +199,17 @@
 
 .header-search-box input {
   background: transparent;
-  border: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   font-weight: 600;
   font-size: 0.9rem;
   width: 100%;
+}
+
+.header-search-box input:focus {
+  outline: none !important;
+  border: none !important;
 }
 
 .header-actions {
@@ -253,6 +278,8 @@
 }
 
 /* Tooltip (CSS Simple) */
+.tooltip { position: relative; }
+
 .tooltip::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -273,6 +300,19 @@
 .tooltip:hover::after {
   opacity: 1;
   margin-left: 20px;
+}
+
+/* Bottom Tooltip Variant for Header */
+.tooltip-bottom::after {
+  left: 50% !important;
+  top: 100% !important;
+  transform: translateX(-50%) !important;
+  margin-left: 0 !important;
+  margin-top: 10px;
+}
+
+.tooltip-bottom:hover::after {
+  margin-top: 15px !important;
 }
 
 /* User Profile Mini Polish & Two-Tier Footer */

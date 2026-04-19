@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone, Activity, ShieldCheck, Mail, Camera, Edit3, Shield } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone, Activity, ShieldCheck, Mail, Camera, Edit3, Shield, Download } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
@@ -10,11 +10,12 @@ import html2canvas from 'html2canvas';
 import AppointmentCard from './AppointmentCard';
 import DashboardShell from './layout/DashboardShell';
 import AppointmentListCard from './common/AppointmentListCard';
+import StatCard from './common/StatCard';
 import { useToast } from '../../context/ToastContext';
 
-const UserDashboard = () => {
+const UserDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
-  const [currentTab, setCurrentTab] = useState('browse');
+  const [currentTab, setCurrentTab] = useState('overview');
   const [myAppointments, setMyAppointments] = useState([]);
   const [userData, setUserData] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -36,8 +37,11 @@ const UserDashboard = () => {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedHospital, setSelectedHospital] = useState(null);
   const cardRef = React.useRef(null);
+  const passRef = React.useRef(null);
   const [downloading, setDownloading] = useState(false);
   const [ticketData, setTicketData] = useState(null);
+  const [capacityMap, setCapacityMap] = useState({});
+  const [loadingCapacity, setLoadingCapacity] = useState(false);
   
   const [bookingData, setBookingData] = useState({
     hospitalId: '',
@@ -52,6 +56,28 @@ const UserDashboard = () => {
     success: false
   });
 
+  // Reset booking wizard whenever user navigates to the browse tab
+  useEffect(() => {
+    if (currentTab === 'browse') {
+      setStep(1);
+      setSelectedProvider(null);
+      setSelectedHospital(null);
+      setCapacityMap({});
+      setBookingData({
+        hospitalId: '',
+        hospitalState: '',
+        appointmentMode: 'Physical',
+        appointmentType: 'New',
+        department: '',
+        date: new Date().toISOString().split('T')[0],
+        startTime: '',
+        endTime: '',
+        phone: '',
+        success: false
+      });
+    }
+  }, [currentTab]);
+
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
@@ -61,7 +87,12 @@ const UserDashboard = () => {
           api.get('/hospitals'),
           api.get('/auth/me')
         ]);
-        setMyAppointments(apptRes.data);
+        const appointments = apptRes.data.sort((a, b) => {
+          const dateComparison = new Date(b.date) - new Date(a.date);
+          if (dateComparison !== 0) return dateComparison;
+          return b.startTime.localeCompare(a.startTime);
+        });
+        setMyAppointments(appointments);
         setHospitals(hospRes.data);
         setUserData(userRes.data);
         setProfileForm({
@@ -86,7 +117,12 @@ const UserDashboard = () => {
   const refreshAppointments = async () => {
     try {
       const { data } = await api.get('/bookings/my-appointments');
-      setMyAppointments(data);
+      const sortedData = data.sort((a, b) => {
+        const dateComparison = new Date(b.date) - new Date(a.date);
+        if (dateComparison !== 0) return dateComparison;
+        return b.startTime.localeCompare(a.startTime);
+      });
+      setMyAppointments(sortedData);
     } catch (err) {
       console.error(err);
     }
@@ -115,8 +151,48 @@ const UserDashboard = () => {
     }
   }, [step, bookingData.hospitalId, bookingData.department]);
 
-  const handleNext = () => setStep(step + 1);
-  const handleBack = () => setStep(step - 1);
+  // Fetch real-time live capacity mapping from backend node
+  useEffect(() => {
+    if (step === 4 && bookingData.date && bookingData.hospitalId && bookingData.department) {
+      const fetchCapacity = async () => {
+        setLoadingCapacity(true);
+        try {
+          const { data } = await api.get('/bookings/capacity', {
+            params: {
+              date: bookingData.date,
+              hospitalId: bookingData.hospitalId,
+              department: bookingData.department
+            }
+          });
+          if (data.capacityMap) {
+            setCapacityMap(data.capacityMap);
+          }
+        } catch (err) {
+          console.error('Failed to fetch real-time capacity', err);
+        } finally {
+          setLoadingCapacity(false);
+        }
+      };
+      
+      fetchCapacity();
+    }
+  }, [step, bookingData.date, bookingData.hospitalId, bookingData.department]);
+
+  const handleNext = () => {
+    if (step === 2 && bookingData.appointmentType === 'Follow-up' && bookingData.department) {
+      setStep(4);
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 4 && bookingData.appointmentType === 'Follow-up' && bookingData.department) {
+      setStep(2);
+    } else {
+      setStep(step - 1);
+    }
+  };
 
   const handleBook = async () => {
     setLoading(true);
@@ -134,6 +210,25 @@ const UserDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRequestFollowUp = (appt) => {
+    const hospId = appt.hospitalId?._id || appt.hospitalId;
+    const fullHospital = hospitals.find(h => h._id === hospId) || appt.hospitalId;
+
+    setBookingData({
+      ...bookingData,
+      hospitalId: hospId,
+      hospitalState: fullHospital?.state || appt.hospitalState,
+      appointmentType: 'Follow-up',
+      department: appt.department,
+      phone: userData?.phone || appt.phone || ''
+    });
+    setSelectedHospital(fullHospital);
+    setSelectedProvider(appt.providerId);
+    setCurrentTab('browse');
+    setStep(3); // Start at Department Selection
+    showToast(`Follow-up context loaded for ${appt.department}`, 'info');
   };
 
   const handleApptAction = async (id, status) => {
@@ -206,6 +301,27 @@ const UserDashboard = () => {
     setCurrentTab('appointments');
   };
 
+  const getRecentlyVisitedDepts = () => {
+    if (!bookingData.hospitalId) return [];
+    const seen = new Set();
+    const suggestions = [];
+    
+    myAppointments.forEach(a => {
+      const hospId = a.hospitalId?._id || a.hospitalId;
+      if (hospId === bookingData.hospitalId && a.status === 'completed' && !seen.has(a.department)) {
+        seen.add(a.department);
+        suggestions.push({
+          name: a.department,
+          doctorName: a.providerId?.userId?.name || 'Expert',
+          provider: a.providerId
+        });
+      }
+    });
+    return suggestions;
+  };
+
+  const recentlyVisited = getRecentlyVisitedDepts();
+
   const states = [...new Set(hospitals.map(h => h.state))].sort();
 
   const stepsList = [
@@ -218,12 +334,122 @@ const UserDashboard = () => {
   ];
 
   return (
-    <DashboardShell
-      currentTab={currentTab}
-      setCurrentTab={setCurrentTab}
-      user={userData}
+    <DashboardShell 
+      currentTab={currentTab} 
+      setCurrentTab={setCurrentTab} 
+      user={userData} 
       role="user"
+      handleLogout={handleLogout}
     >
+
+      {currentTab === 'overview' && (
+        <div className="dashboard-overview animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          {/* Welcome Header */}
+          <div className="overview-header" style={{ marginBottom: '40px' }}>
+            <h1 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>
+              Welcome back, <span className="text-gradient">{userData?.name?.split(' ')[0]}</span>!
+            </h1>
+            <p className="text-muted" style={{ fontSize: '1.2rem', fontWeight: 500 }}>Your personalized health identity and schedule insights.</p>
+          </div>
+
+          {/* Stat Grid */}
+          <div className="stats-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+            <StatCard 
+              label="Successful Bookings" 
+              value={myAppointments.filter(a => a.status === 'confirmed').length}
+              icon={Calendar}
+              variant="indigo"
+            />
+            <StatCard 
+              label="Total Health Records" 
+              value={myAppointments.length}
+              icon={ShieldCheck}
+              variant="amber"
+            />
+            <StatCard 
+              label="Completed Visits" 
+              value={myAppointments.filter(a => a.status === 'completed').length}
+              icon={CheckCircle}
+              variant="emerald"
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+            {/* Action Hub */}
+            <div className="action-hub glass-stat" style={{ padding: '32px', borderRadius: '28px', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-0.5px' }}>Quick Actions</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div 
+                  className="action-card-modern" 
+                  onClick={() => setCurrentTab('browse')}
+                  style={{ padding: '24px', background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '20px', cursor: 'pointer', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                >
+                  <PlusSquare size={36} color="var(--primary)" style={{ marginBottom: '16px' }} />
+                  <h4 style={{ fontWeight: 800, color: '#0f172a', marginBottom: '8px', fontSize: '1.1rem' }}>Book Visit</h4>
+                  <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>Schedule a new consultation with medical experts.</p>
+                </div>
+                <div 
+                  className="action-card-modern" 
+                  onClick={() => setCurrentTab('profile')}
+                  style={{ padding: '24px', background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '20px', cursor: 'pointer', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                >
+                  <User size={36} color="#10b981" style={{ marginBottom: '16px' }} />
+                  <h4 style={{ fontWeight: 800, color: '#0f172a', marginBottom: '8px', fontSize: '1.1rem' }}>Health Passport</h4>
+                  <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>Manage your verified medical identity files.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming Highlight */}
+            <div className="upcoming-highlight glass-stat" style={{ padding: '32px', borderRadius: '28px', border: '1px solid rgba(255, 255, 255, 0.4)' }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-0.5px' }}>Next Up</h3>
+              {(() => {
+                const upcoming = [...myAppointments]
+                  .filter(a => a.status === 'confirmed')
+                  .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+                
+                if (upcoming) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ background: 'linear-gradient(135deg, #4f46e5, #0ea5e9)', color: 'white', padding: '20px', borderRadius: '20px', textAlign: 'center', boxShadow: '0 12px 24px -8px rgba(79, 70, 229, 0.4)' }}>
+                        <span style={{ display: 'block', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 800, marginBottom: '6px', opacity: 0.9 }}>
+                          Reserved Slot
+                        </span>
+                        <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900 }}>{upcoming.startTime}</span>
+                        <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, marginTop: '4px', opacity: 0.8 }}>
+                          {new Date(upcoming.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <div style={{ padding: '4px 0' }}>
+                        <p style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px', fontSize: '1.15rem' }}>Dr. {upcoming.providerId?.userId?.name}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b' }}>
+                          <Shield size={14} />
+                          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{upcoming.department}</span>
+                        </div>
+                      </div>
+                      <button 
+                        className="btn btn-primary w-full" 
+                        onClick={() => setCurrentTab('appointments')}
+                        style={{ padding: '14px', borderRadius: '16px', fontSize: '0.95rem', fontWeight: 700 }}
+                      >
+                        Check-in Status
+                      </button>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '40px 0', opacity: 0.6 }}>
+                      <ShieldCheck size={56} style={{ margin: '0 auto 20px auto', color: '#10b981' }} />
+                      <p style={{ fontWeight: 900, fontSize: '1.2rem', marginBottom: '8px', color: '#0f172a' }}>Clear Schedule</p>
+                      <p style={{ fontSize: '0.95rem', fontWeight: 500 }}>You have no pending medical visits.</p>
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {currentTab === 'browse' && (
         <div className="inline-wizard-layout">
@@ -311,6 +537,33 @@ const UserDashboard = () => {
                     <span>Follow-up</span>
                   </button>
                 </div>
+
+                {bookingData.appointmentType === 'Follow-up' && recentlyVisited.length > 0 && (
+                  <div className="recently-visited-section mt-8 animate-fade-in">
+                    <label className="input-label mb-3 block" style={{ fontSize: '0.9rem' }}>Select a Visited Department to skip next step:</label>
+                    <div className="suggestion-chips">
+                      {recentlyVisited.map(item => (
+                        <button 
+                          key={item.name}
+                          className={`suggestion-chip large ${bookingData.department === item.name ? 'active' : ''}`}
+                          onClick={() => {
+                            setBookingData({...bookingData, department: item.name});
+                            setSelectedProvider(item.provider);
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Activity size={16} /> {item.name}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.8, marginLeft: '24px' }}>
+                              Dr. {item.doctorName}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -318,6 +571,43 @@ const UserDashboard = () => {
             {step === 3 && (
               <div className="step-view animate-fade-in">
                 <h3 className="section-title">Select Department</h3>
+                
+                {bookingData.appointmentType === 'Follow-up' && (
+                  <>
+                    <div className="modern-context-badge mb-4">
+                      <Hospital size={14} />
+                      <span>Consulting at: <strong>{selectedHospital?.name}</strong></span>
+                    </div>
+
+                    {recentlyVisited.length > 0 && (
+                      <div className="recently-visited-section mb-6">
+                        <label className="input-label mb-2 block" style={{ fontSize: '0.8rem', opacity: 0.7 }}>Recently Visited Specialty</label>
+                        <div className="suggestion-chips">
+                          {recentlyVisited.map(item => (
+                            <button 
+                              key={item.name}
+                              className={`suggestion-chip ${bookingData.department === item.name ? 'active' : ''}`}
+                              onClick={() => {
+                                setBookingData({...bookingData, department: item.name});
+                                setSelectedProvider(item.provider);
+                              }}
+                            >
+                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Activity size={14} /> {item.name}
+                                </span>
+                                <span style={{ fontSize: '0.65rem', opacity: 0.7, marginLeft: '20px' }}>
+                                  Dr. {item.doctorName}
+                                </span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <div className="input-field-wrapper mt-4">
                   <label className="input-label">Available Specialty / Department</label>
                   <select 
@@ -347,23 +637,104 @@ const UserDashboard = () => {
                     <InputField 
                       type="date" 
                       value={bookingData.date}
+                      min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setBookingData({...bookingData, date: e.target.value})}
                     />
                   </div>
 
-                  {/* Column 2: Time Slots */}
                   <div className="time-slots-col">
                     <label className="input-label" style={{ display: 'block', marginBottom: '8px' }}>Select Time Slot</label>
-                    <div className="slots-grid">
-                      {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((time, i) => (
-                        <button 
-                          key={i} 
-                          className={`slot-item ${bookingData.startTime === time ? 'selected' : ''}`}
-                          onClick={() => setBookingData({...bookingData, startTime: time, endTime: `${parseInt(time) + 1}:00`})}
-                        >
-                          {time}
-                        </button>
-                      ))}
+                    <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '16px' }}>
+                      {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((time, i) => {
+                        // Integrate live backend capacity map
+                        const liveData = capacityMap[time];
+                        const isDataLoaded = Object.keys(capacityMap).length > 0;
+                        const capacityState = loadingCapacity ? 'loading' : (liveData ? liveData.state : (isDataLoaded ? 'unavailable' : 'loading'));
+                        const capacityPercent = liveData ? liveData.percent : 0;
+                        
+                        let baseColor = '#10b981'; // Emerald Green
+                        let bgColor = '#ecfdf5'; // Light Green
+                        let label = 'Available';
+                        
+                        if (capacityState === 'loading') {
+                          baseColor = '#94a3b8'; // Slate Gray
+                          bgColor = '#f8fafc';
+                          label = 'Syncing...';
+                        } else if (capacityState === 'unavailable') {
+                          baseColor = '#94a3b8'; // Slate Gray
+                          bgColor = '#f1f5f9'; // Light Grey Background
+                          label = 'Unavailable';
+                        } else if (capacityState === 'partial') {
+                          baseColor = '#f59e0b'; // Amber Yellow
+                          bgColor = '#fffbeb'; // Light Amber
+                          label = 'Almost Full';
+                        } else if (capacityState === 'full') {
+                          baseColor = '#ef4444'; // Reddish Full
+                          bgColor = '#fef2f2'; // Light Red
+                          label = 'Full';
+                        }
+
+                        const isSelected = bookingData.startTime === time;
+
+                        return (
+                          <button 
+                            key={i} 
+                            disabled={capacityState === 'full' || capacityState === 'loading' || capacityState === 'unavailable'}
+                            className={`slot-item premium-slot ${isSelected ? 'selected' : ''}`}
+                            onClick={() => {
+                              if(capacityState !== 'full') {
+                                setBookingData({...bookingData, startTime: time, endTime: `${parseInt(time) + 1}:00`});
+                              }
+                            }}
+                            style={{
+                              position: 'relative',
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '16px 12px',
+                              border: isSelected ? `2px solid ${baseColor}` : `1px solid ${baseColor}40`,
+                              borderRadius: '16px',
+                              background: isSelected ? baseColor : bgColor,
+                              color: isSelected ? 'white' : 'var(--text)',
+                              cursor: capacityState === 'full' ? 'not-allowed' : 'pointer',
+                              opacity: capacityState === 'full' ? 0.6 : 1,
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              boxShadow: isSelected ? `0 8px 16px ${baseColor}40` : '0 2px 8px rgba(0,0,0,0.02)'
+                            }}
+                          >
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px' }}>{time}</span>
+                            
+                            {label && (
+                              <div style={{ 
+                                fontSize: '0.65rem', 
+                                fontWeight: 800, 
+                                textTransform: 'uppercase', 
+                                color: isSelected ? 'white' : baseColor,
+                                background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                letterSpacing: '0.5px'
+                              }}>
+                                {label}
+                              </div>
+                            )}
+                            
+                            {/* Capacity Progress Bar at the bottom */}
+                            {!isSelected && (capacityState !== 'loading') && (
+                              <div style={{ position: 'absolute', bottom: 0, left: 0, height: '4px', width: '100%', background: 'rgba(0,0,0,0.04)' }}>
+                                <div style={{ 
+                                  height: '100%', 
+                                  background: baseColor, 
+                                  width: `${capacityState === 'available' && capacityPercent === 0 ? 20 : capacityPercent}%`,
+                                  transition: 'width 0.5s ease'
+                                }} />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -413,46 +784,68 @@ const UserDashboard = () => {
             {step === 6 && (
               <div className="step-view text-center animate-fade-in modern-success-content">
                 <div className="health-pass-container">
-                  <div className="health-pass-card">
-                    <div className="pass-header">
-                      <div className="pass-live-indicator">
-                        <span className="live-dot"></span>
-                        {bookingData.success ? 'Confirmed / Active' : 'System Processing'}
-                      </div>
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Visit Pass</h3>
-                    </div>
-
-                    <div className="pass-body">
-                      <div className="pass-grid">
-                        <div className="pass-item">
-                          <label>Expert</label>
-                          <span>Dr. {selectedProvider?.userId?.name}</span>
-                        </div>
-                        <div className="pass-item">
-                          <label>Mode</label>
-                          <span>{bookingData.appointmentMode}</span>
-                        </div>
-                        <div className="pass-item">
-                          <label>Facility</label>
-                          <span style={{ fontSize: '0.8rem' }}>{selectedHospital?.name}</span>
-                        </div>
-                        <div className="pass-item">
-                          <label>Schedule</label>
-                          <span>{new Date(bookingData.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="pass-item" style={{ gridColumn: 'span 2', marginTop: '12px' }}>
-                          <label>Reserved Slots</label>
-                          <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>{bookingData.startTime} - {bookingData.endTime}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pass-footer">
-                      <div className="qr-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <Activity size={40} color="var(--primary)" style={{ opacity: 0.3 }} />
-                      </div>
-                    </div>
-                  </div>
+                  <AppointmentCard 
+                    appointment={{
+                      ...bookingData,
+                      doctorName: selectedProvider?.userId?.name,
+                      hospitalName: selectedHospital?.name,
+                      hospitalAddress: selectedHospital?.address,
+                      userId: userData,
+                      status: bookingData.success ? 'confirmed' : 'System Processing'
+                    }} 
+                    cardRef={passRef}
+                    footerAction={
+                      bookingData.success && (
+                        <button 
+                          className="btn btn-primary download-pass-btn"
+                          disabled={downloading}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!passRef.current) return;
+                            setDownloading(true);
+                            showToast('Generating appointment letter...', 'info');
+                            try {
+                              const btn = e.currentTarget;
+                              const originalDisplay = btn.style.display;
+                              btn.style.display = 'none';
+                              await new Promise(r => setTimeout(r, 200));
+                              const canvas = await html2canvas(passRef.current, {
+                                scale: 2,
+                                backgroundColor: '#ffffff',
+                                logging: false,
+                                useCORS: true
+                              });
+                              btn.style.display = originalDisplay;
+                              const image = canvas.toDataURL('image/png');
+                              const link = document.createElement('a');
+                              link.href = image;
+                              link.download = `appointment-letter-${bookingData.date}.png`;
+                              link.click();
+                              showToast('Appointment letter downloaded!', 'success');
+                            } catch (err) {
+                              console.error('Download failed:', err);
+                              showToast('Could not generate letter', 'error');
+                            } finally {
+                              setDownloading(false);
+                            }
+                          }}
+                          style={{
+                            width: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '8px 20px',
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          <Download size={16} /> {downloading ? 'Generating...' : 'Download'}
+                        </button>
+                      )
+                    }
+                  />
 
                   {bookingData.success ? (
                     <div className="success-message-area">
@@ -531,15 +924,27 @@ const UserDashboard = () => {
 
           <div className="appointments-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {myAppointments.length > 0 ? (
-              myAppointments.map(appt => (
-                <AppointmentListCard 
-                  key={appt._id} 
-                  appointment={appt} 
-                  role="user"
-                  onAction={handleApptAction}
-                  onDownload={handleDownloadTicket}
-                />
-              ))
+              (() => {
+                const seenDepts = new Set();
+                const latestCompletedIds = [];
+                myAppointments.forEach(appt => {
+                  if (appt.status === 'completed' && !seenDepts.has(appt.department)) {
+                    latestCompletedIds.push(appt._id);
+                    seenDepts.add(appt.department);
+                  }
+                });
+
+                return myAppointments.map(appt => (
+                  <AppointmentListCard 
+                    key={appt._id} 
+                    appointment={appt} 
+                    role="user"
+                    onAction={handleApptAction}
+                    onDownload={handleDownloadTicket}
+                    onFollowUp={latestCompletedIds.includes(appt._id) ? handleRequestFollowUp : null}
+                  />
+                ));
+              })()
             ) : (
               <div className="tc py-12 glass-stat">
                 <Calendar size={48} className="text-muted mb-4" style={{ opacity: 0.5 }} />

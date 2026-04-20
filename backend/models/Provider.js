@@ -6,6 +6,20 @@ const providerSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'User ID is required'],
   },
+  // Identity & Verification
+  // ---------------------------------------------------
+  registrationNumber: { type: String, trim: true },
+  medicalCouncil: { type: String, trim: true },
+  registrationCertificate: { type: String },
+  isVerified: { type: Boolean, default: false },
+  fathersName: { type: String, trim: true },
+  mothersName: { type: String, trim: true },
+
+  // Qualifications
+  // ---------------------------------------------------
+  degrees: [String],
+  medicalCollege: { type: String },
+  yearOfDegreeAchieved: { type: Number },
   specialization: {
     type: String,
     required: [true, 'Specialization is required'],
@@ -15,16 +29,35 @@ const providerSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Years of experience is required'],
   },
-  pricePerHour: {
-    type: Number,
-    default: 0,
+  awards: [String],
+  languages: [String],
+
+  // Practice Details
+  // ---------------------------------------------------
+  clinicName: { type: String },
+  clinicAddress: { type: String },
+  consultationFees: {
+    inPerson: { type: Number, default: 0 },
+    online: { type: Number, default: 0 }
   },
-  slotsPerHour: {
-    type: Number,
-    default: 1,
-    min: 1,
-    max: 20
+  consultationModes: {
+    type: [String],
+    enum: ['In-person', 'Video', 'Phone'],
+    default: ['In-person']
   },
+
+  // Smart Scheduling
+  // ---------------------------------------------------
+  slotDuration: { type: Number, default: 15 }, // in minutes
+  bufferTime: { type: Number, default: 5 }, // buffer between appts in mins
+  autoAccept: { type: Boolean, default: true },
+  maxPatientsPerSlot: { type: Number, default: 1 },
+  breakTimes: [
+    {
+      startTime: String,
+      endTime: String
+    }
+  ],
   availability: [
     {
       day: {
@@ -33,12 +66,27 @@ const providerSchema = new mongoose.Schema({
       },
       slots: [
         {
-          startTime: String, // "09:00"
-          endTime: String,   // "10:00"
+          startTime: String,
+          endTime: String,
         },
       ],
     },
   ],
+
+  // Payouts & Legal
+  // ---------------------------------------------------
+  bankDetails: {
+    accountNumber: String,
+    ifscCode: String,
+    upiId: String
+  },
+  gstNumber: { type: String },
+  visibility: { 
+    type: String, 
+    enum: ['public', 'private'], 
+    default: 'public' 
+  },
+
   bio: {
     type: String,
     trim: true,
@@ -46,10 +94,10 @@ const providerSchema = new mongoose.Schema({
   hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Hospital',
-    required: [true, 'Hospital allocation is required'],
+    required: false, // Will be filled during setup wizard
   },
   location: {
-    type: String, // Keep as backup for specific room/floor
+    type: String,
     trim: true,
   },
   rating: {

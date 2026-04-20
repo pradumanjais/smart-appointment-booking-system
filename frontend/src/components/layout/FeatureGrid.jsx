@@ -51,8 +51,8 @@ const FeatureGrid = () => {
       <div className="grid-3">
         {features.map((f, i) => (
           <div key={i} className="feature-card-premium ui-card p-md animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-            <div className="feature-icon-box" style={{ background: `${f.color}15`, color: f.color }}>
-              <f.icon size={28} />
+            <div className="feature-icon-box" style={{ background: `${f.color}08`, color: f.color }}>
+              <f.icon size={26} strokeWidth={2.5} />
             </div>
             <h3>{f.title}</h3>
             <p className="text-muted">{f.desc}</p>

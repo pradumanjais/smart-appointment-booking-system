@@ -52,7 +52,7 @@ const HealthPassport = () => {
                   <div className="avatar-placeholder"></div>
                   <div>
                     <div className="ticket-label">Patient Name</div>
-                    <div className="ticket-value">Praduman Jaiswal</div>
+                    <div className="ticket-value">Arjun Mehra</div>
                   </div>
                 </div>
                 <div className="ticket-info-grid">

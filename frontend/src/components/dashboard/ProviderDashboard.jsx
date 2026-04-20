@@ -10,7 +10,8 @@ import StatCard from './common/StatCard';
 import AppointmentListCard from './common/AppointmentListCard';
 import DailyScheduleCalendar from './common/DailyScheduleCalendar';
 import { useToast } from '../../context/ToastContext';
-import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Award, DollarSign, List, Grid } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Edit, Award, DollarSign, List, Grid, ChevronLeft, ChevronRight, Zap, Moon } from 'lucide-react';
+import ProviderSetupWizard from './ProviderSetupWizard';
 
 const ProviderDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
@@ -19,6 +20,108 @@ const ProviderDashboard = ({ handleLogout }) => {
   const [appointments, setAppointments] = useState([]);
   const [providerData, setProviderData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [wizardStartStep, setWizardStartStep] = useState(1);
+  const [wizardIsSingleStep, setWizardIsSingleStep] = useState(false);
+  const [wizardOnlyField, setWizardOnlyField] = useState(null);
+  
+  // Inline Availability Editing
+  const [isEditingAvailability, setIsEditingAvailability] = useState(false);
+  const [editAvailabilityData, setEditAvailabilityData] = useState({
+    slotDuration: 15,
+    availability: []
+  });
+  
+  const openWizard = (step = 1, single = false, field = null) => {
+    // If we are in the availability tab, use inline editing instead of wizard
+    if (currentTab === 'availability' && step === 5) {
+      startEditingAvailability();
+      return;
+    }
+    setWizardStartStep(step);
+    setWizardIsSingleStep(single);
+    setWizardOnlyField(field);
+    setShowSetupWizard(true);
+  };
+
+  const startEditingAvailability = () => {
+    setEditAvailabilityData({
+      slotDuration: providerData?.slotDuration || 15,
+      availability: providerData?.availability || []
+    });
+    setIsEditingAvailability(true);
+  };
+
+  const handleInlineAvailabilityChange = (day, field, value) => {
+    setEditAvailabilityData(prev => ({
+      ...prev,
+      availability: prev.availability.map(a => 
+        a.day === day 
+          ? { ...a, slots: [{ ...a.slots[0], [field]: value }] }
+          : a
+      )
+    }));
+  };
+
+  const toggleInlineDay = (day) => {
+    setEditAvailabilityData(prev => {
+      const exists = prev.availability.find(a => a.day === day);
+      if (exists) {
+        return { ...prev, availability: prev.availability.filter(a => a.day !== day) };
+      } else {
+        return { 
+          ...prev, 
+          availability: [...prev.availability, { day, slots: [{ startTime: '09:00', endTime: '17:00' }] }] 
+        };
+      }
+    });
+  };
+
+  const handleSlotDurationChange = (e) => {
+    setEditAvailabilityData(prev => ({ ...prev, slotDuration: e.target.value }));
+  };
+
+  const handleSaveAvailability = async () => {
+    setLoading(true);
+    try {
+      // Construct a clean payload to avoid 500 errors from populated objects or extra fields
+      const payload = {
+        fathersName: providerData.fathersName,
+        mothersName: providerData.mothersName,
+        registrationNumber: providerData.registrationNumber,
+        medicalCouncil: providerData.medicalCouncil,
+        specialization: providerData.specialization,
+        degrees: providerData.degrees,
+        medicalCollege: providerData.medicalCollege,
+        yearOfDegreeAchieved: providerData.yearOfDegreeAchieved,
+        experience: providerData.experience,
+        bio: providerData.bio,
+        location: providerData.location,
+        clinicName: providerData.clinicName,
+        clinicAddress: providerData.clinicAddress,
+        awards: providerData.awards,
+        consultationFees: providerData.consultationFees,
+        consultationModes: providerData.consultationModes,
+        hospitalId: providerData.hospitalId?._id || providerData.hospitalId,
+        slotDuration: Number(editAvailabilityData.slotDuration),
+        availability: editAvailabilityData.availability,
+        visibility: providerData.visibility || 'public'
+      };
+
+      await api.post('/providers/profile', payload);
+      
+      showToast('Availability updated successfully', 'success');
+      // Refresh provider data
+      const { data } = await api.get('/providers/profile');
+      setProviderData(data);
+      setIsEditingAvailability(false);
+    } catch (err) {
+      console.error('Update failed:', err);
+      showToast('Failed to update availability. Please check your data.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Edit Profile States
   const [isEditing, setIsEditing] = useState(false);
@@ -47,17 +150,21 @@ const ProviderDashboard = ({ handleLogout }) => {
       try {
         const { data } = await api.get('/providers/profile');
         setProviderData(data);
+        // If profile is very basic (only required fields from model.create during registration), show wizard
+        if (!data.registrationNumber || !data.clinicName) {
+           setShowSetupWizard(true);
+        }
       } catch (err) {
         if (err.response?.status === 404) {
           console.warn('Provider professional profile not configured yet. Loading base user data...');
+          setShowSetupWizard(true);
           try {
             const userRes = await api.get('/auth/me');
-            // Mock a valid providerData object so the UI doesn't crash or go blank
             setProviderData({
               userId: userRes.data,
               hospitalId: null,
-              specialization: 'Not configured',
-              slotsPerHour: 1,
+              specialization: '',
+              experience: 0,
               availability: []
             });
           } catch (fallbackErr) {
@@ -99,8 +206,8 @@ const ProviderDashboard = ({ handleLogout }) => {
       hospitalId: providerData?.hospitalId?._id || '',
       specialization: providerData?.specialization || '',
       experience: providerData?.experience || 0,
-      pricePerHour: providerData?.pricePerHour || 0,
-      slotsPerHour: providerData?.slotsPerHour || 1,
+      pricePerHour: providerData?.consultationFees?.inPerson || 0,
+      slotsPerHour: providerData?.slotDuration || 15,
       bio: providerData?.bio || '',
       location: providerData?.location || '',
       availability: providerData?.availability ? [...providerData.availability] : []
@@ -108,15 +215,22 @@ const ProviderDashboard = ({ handleLogout }) => {
     setIsEditing(true);
   };
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (updatedData) => {
+      setProviderData(updatedData);
+      setShowSetupWizard(false);
+      setWizardStartStep(1); // Reset for next time
+  };
+
+  const handleProfileLegacySave = async () => {
     setSaving(true);
     try {
       await api.post('/providers/profile', editFormData);
       const { data } = await api.get('/providers/profile');
       setProviderData(data);
       setIsEditing(false);
+      showToast('Profile updated!', 'success');
     } catch (err) {
-      alert(err.response?.data?.message || err.response?.data?.errors?.[0]?.msg || 'Failed to save profile');
+      showToast(err.response?.data?.message || 'Failed to save', 'error');
     } finally {
       setSaving(false);
     }
@@ -145,11 +259,10 @@ const ProviderDashboard = ({ handleLogout }) => {
     setEditFormData({ ...editFormData, availability: newAvail });
   };
 
-  const getTimeGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+  const calculateCompletionRate = () => {
+    if (appointments.length === 0) return 0;
+    const completed = appointments.filter(a => a.status === 'completed').length;
+    return Math.round((completed / appointments.length) * 100);
   };
 
   const getRecentActivity = () => {
@@ -159,11 +272,8 @@ const ProviderDashboard = ({ handleLogout }) => {
       .slice(0, 5);
   };
 
-  const calculateCompletionRate = () => {
-    if (appointments.length === 0) return 0;
-    const completed = appointments.filter(a => a.status === 'completed').length;
-    return Math.round((completed / appointments.length) * 100);
-  };
+  // UI helpers
+  const isProfileIncomplete = !providerData?.registrationNumber || !providerData?.specialization;
 
   return (
     <DashboardShell
@@ -174,6 +284,55 @@ const ProviderDashboard = ({ handleLogout }) => {
       handleLogout={handleLogout}
     >
 
+      {/* Profile Completeness Banner */}
+      {isProfileIncomplete && !showSetupWizard && currentTab === 'appointments' && (
+        <div className="onboarding-banner glass-stat animate-slide-up" style={{
+          background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+          color: 'white',
+          padding: '24px 32px',
+          borderRadius: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px',
+          border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+               <ShieldCheck color="#10b981" size={24} />
+               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0 }}>Finalize Your Profile</h3>
+            </div>
+            <p style={{ margin: 0, opacity: 0.8, fontSize: '0.95rem' }}>Complete your medical verification and smart scheduling to start accepting patients.</p>
+          </div>
+          <Button 
+            variant="primary" 
+            onClick={() => setShowSetupWizard(true)}
+            style={{ padding: '12px 28px', borderRadius: '14px', background: '#3b82f6' }}
+          >
+            Start Verification Wizard
+          </Button>
+        </div>
+      )}
+
+      {showSetupWizard ? (
+        <div className="setup-wizard-container py-8">
+            <button 
+                onClick={() => setShowSetupWizard(false)}
+                style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: 700, marginBottom: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+                <ChevronLeft size={20} /> Back to dashboard
+            </button>
+            <ProviderSetupWizard 
+                user={providerData?.userId} 
+                existingProfile={providerData} 
+                onComplete={handleSaveProfile} 
+                startStep={wizardStartStep}
+                isSingleStep={wizardIsSingleStep}
+                onlyField={wizardOnlyField}
+            />
+        </div>
+      ) : (
+        <>
       {currentTab === 'appointments' && (
         <div className="dashboard-overview animate-fade-in" style={{ marginTop: '24px' }}>
           {/* Enhanced Header */}
@@ -310,7 +469,7 @@ const ProviderDashboard = ({ handleLogout }) => {
               style={{ padding: '12px', borderRadius: '14px', fontSize: '0.9rem', fontWeight: 800 }}
               onClick={() => setCurrentTab('profile')}
             >
-              Master Identity
+              Update Profile
             </button>
           </div>
         </div>
@@ -320,206 +479,397 @@ const ProviderDashboard = ({ handleLogout }) => {
 }
 
       {currentTab === 'profile' && providerData && (
-        <div className="modern-profile-shell animate-slide-up">
-          {/* LEFT COLUMN: Expert Identity Sidebar */}
-          <div className="profile-sidebar-card">
-            <div className="expert-badge-shimmer">
-              <Award size={14} /> Verified Specialist
-            </div>
-            
-            <div className="profile-avatar-giant-box">
+        <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '32px', alignItems: 'start' }}>
+          {/* LEFT COLUMN: Premium Expert Hero */}
+          <div className="profile-hero-glass" style={{ padding: '40px', textAlign: 'center', position: 'sticky', top: '24px' }}>
+            <div className="avatar-glow-container">
+              <div className="avatar-glow-ring"></div>
               <img 
-                src={editFormData.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
+                src={providerData.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
                 alt="Expert" 
                 className="profile-avatar-giant" 
               />
-              {isEditing && (
-                <label className="avatar-edit-glare">
-                  <Camera size={20} />
-                  <input type="file" accept="image/*" style={{ display: 'none' }} />
-                </label>
-              )}
             </div>
 
-            <h2>Dr. {providerData.userId?.name}</h2>
-            <p className="user-email">{providerData.userId?.email}</p>
-
-            <div className="expert-rating-banner">
-              <Star size={16} fill="currentColor" /> Expert Rating: 4.9 (High-Trust)
+            <div style={{ marginBottom: '24px' }}>
+              <div className={`status-badge-unified ${providerData.isVerified ? 'sb-confirmed' : 'sb-pending'}`} style={{ marginBottom: '12px', padding: '6px 16px', fontSize: '0.75rem' }}>
+                {providerData.isVerified ? 'VERIFIED SPECIALIST' : 'VERIFICATION PENDING'}
+              </div>
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.5px' }}>
+                Dr. {providerData.userId?.name.split(' ')[0]} <span style={{ color: 'var(--primary)', opacity: 0.6 }}>{providerData.userId?.name.split(' ').slice(1).join(' ')}</span>
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: 600 }}>{providerData.userId?.email}</p>
             </div>
 
-            <div className="profile-summary-vitals">
-              <div className="specialist-vital-pill">
-                <label>Experience</label>
-                <span>{providerData.experience}+ Yrs</span>
+            <div className="rating-shimmer mb-8">
+              <div style={{ display: 'flex', gap: '2px' }}>
+                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} fill={i <= Math.floor(providerData.rating || 4.9) ? "currentColor" : "none"} />)}
               </div>
-              <div className="specialist-vital-pill">
-                <label>Consult Fee</label>
-                <span>${providerData.pricePerHour}</span>
+              <span>{providerData.rating || 4.9} EXPERT SCORE</span>
+            </div>
+
+            <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+              <div className="vital-card-premium">
+                <div className="vital-icon-box" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <Activity size={18} />
+                </div>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Expertise</label>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.specialization || '—'}</span>
               </div>
-              <div className="specialist-vital-pill" style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)' }}>
-                <label style={{ color: 'var(--primary)' }}>Hourly Capacity</label>
-                <span style={{ color: 'var(--primary)' }}>{providerData.slotsPerHour || 1} Slots</span>
+              
+              <div className="vital-card-premium">
+                <div className="vital-icon-box" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                  <Award size={18} />
+                </div>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Experience</label>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.experience || 0}+ Years</span>
+              </div>
+
+              <div className="vital-card-premium">
+                <div className="vital-icon-box" style={{ background: '#fff7ed', color: '#ea580c' }}>
+                  <DollarSign size={18} />
+                </div>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Consultation</label>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>₹{providerData.consultationFees?.inPerson || 0}</span>
+              </div>
+
+              <div className="vital-card-premium">
+                <div className="vital-icon-box" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <Clock size={18} />
+                </div>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Slot Size</label>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.slotDuration || 15} Min</span>
               </div>
             </div>
 
-            {!isEditing ? (
-              <Button 
-                variant="primary" 
-                className="w-full mt-8" 
-                onClick={() => setIsEditing(true)}
-                style={{ borderRadius: '16px', padding: '14px' }}
-              >
-                <Edit3 size={18} className="mr-2" /> Refine Identity
-              </Button>
-            ) : (
-              <p className="mt-8 text-xs font-bold text-muted uppercase tracking-widest">Editing Mode Active</p>
-            )}
+            <Button 
+              variant="primary" 
+              className="w-full" 
+              onClick={() => openWizard(1)}
+              style={{ borderRadius: '18px', padding: '16px', fontWeight: 800, boxShadow: '0 10px 20px rgba(var(--primary-rgb), 0.2)' }}
+            >
+              <Edit3 size={18} style={{ marginRight: '8px' }} /> Update Your Profile
+            </Button>
           </div>
 
-          {/* RIGHT COLUMN: Professional Content Area */}
-          <div className="profile-main-content">
-            {/* HERITAGE PACK */}
-            <div className="info-pack-card animate-slide-up animate-delay-1">
-              <div className="pack-header">
-                <Briefcase size={22} />
-                <h3>Expertise & Heritage</h3>
+          {/* RIGHT COLUMN: Enhanced Data Packs */}
+          <div className="profile-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            
+            {/* PROFESSIONAL BIO - PRIMARY HIGHLIGHT */}
+            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <Star size={20} color="#f59e0b" fill="#f59e0b" />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Professional Bio</h3>
               </div>
               
-              {isEditing ? (
-                 <div className="pack-grid">
-                    <div className="modern-field-group">
-                      <label><Briefcase size={16} /> Specialty Area</label>
-                      <select 
-                        className="input-field" 
-                        style={{ height: '52px', borderRadius: '16px' }}
-                        value={editFormData.specialization} 
-                        onChange={(e) => setEditFormData({...editFormData, specialization: e.target.value})}
-                      >
-                        <option value="Cardiology">Cardiology</option>
-                        <option value="Neurology">Neurology</option>
-                        <option value="Dermatology">Dermatology</option>
-                        <option value="Pediatrics">Pediatrics</option>
-                        <option value="General Medicine">General Medicine</option>
-                      </select>
-                    </div>
-                    <div className="modern-field-group">
-                      <label><TrendingUp size={16} /> Years Experience</label>
-                      <InputField type="number" value={editFormData.experience} onChange={(e) => setEditFormData({...editFormData, experience: e.target.value})} />
-                    </div>
-                    <div className="modern-field-group" style={{ gridColumn: 'span 2' }}>
-                      <label><Activity size={16} /> Professional Bio</label>
-                      <InputField value={editFormData.bio} onChange={(e) => setEditFormData({...editFormData, bio: e.target.value})} placeholder="Describe your medical journey..." />
-                    </div>
-                 </div>
-              ) : (
-                <div className="doctor-legacy-bio">
-                  {providerData.bio || 'Dedicated to providing precision healthcare with over a decade of clinical experience in specialized medicine.'}
+              <div className="data-item-premium" style={{ alignItems: 'start', background: 'white', border: '1.5px solid #f1f5f9' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '1.1rem', lineHeight: '1.8', color: '#334155', fontWeight: 500, fontStyle: providerData.bio ? 'normal' : 'italic' }}>
+                    {providerData.bio || 'Your professional biography provides patients with meaningful context about your practice. Click "Update Your Profile" to add one.'}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* OPERATIONAL PLANNING PACK */}
-            <div className="info-pack-card animate-slide-up animate-delay-2">
-              <div className="pack-header">
-                <Clock size={22} />
-                <h3>Operational Planner</h3>
-              </div>
-
-              {/* Throughput Capacity Configuration */}
-              <div className="capacity-config-row mb-8 p-4 glass-stat" style={{ borderRadius: '20px', border: '1px solid var(--primary-light)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Throughput Capacity</h4>
-                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.7 }}>How many appointments can be booked per hour?</p>
-                  </div>
-                  {isEditing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <select 
-                        className="input-field" 
-                        style={{ width: '80px', height: '40px', borderRadius: '10px', textAlign: 'center' }}
-                        value={editFormData.slotsPerHour}
-                        onChange={(e) => setEditFormData({...editFormData, slotsPerHour: parseInt(e.target.value)})}
-                      >
-                        {[1,2,3,4,5,6,8,10,12,15].map(n => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>slots</span>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="status-badge-unified sb-confirmed" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-                        {providerData.slotsPerHour || 1} Appointments / Hr
-                      </div>
-                      <button 
-                        onClick={handleEditClick}
-                        className="btn-pill"
-                        style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 800, borderRadius: '8px', cursor: 'pointer' }}
-                      >
-                        Adjust
-                      </button>
-                    </div>
-                  )}
+            {/* PERSONAL IDENTITY */}
+            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <User size={20} color="var(--primary)" />
                 </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Personal Identity</h3>
               </div>
               
-              <div className="availability-planner-container">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><User size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Full Legal Name</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.name || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Mail size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Email Address</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.email || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Phone size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Mobile Number</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.phone || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Base State</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.location || providerData.userId?.state || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* WORKING LOCATION */}
+            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <MapPin size={20} color="#10b981" />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Working Location</h3>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="data-item-premium" style={{ background: 'linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1.5px solid #bae6fd' }}>
+                   <div className="data-icon-wrapper" style={{ background: 'white' }}><Activity size={20} /></div>
+                   <div style={{ flex: 1 }}>
+                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#0369a1', textTransform: 'uppercase' }}>Clinical Institution</label>
+                     <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0c4a6e' }}>{providerData.clinicName || 'Universal Health Center'}</span>
+                   </div>
+                </div>
+                
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Address</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicAddress || 'Not Specified'}</span>
+                  </div>
+                </div>
+
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>State / Region</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.location || 'Not Specified'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MEDICAL CREDENTIALS */}
+            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <ShieldCheck size={20} color="#7c3aed" />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Medical Credentials</h3>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><ShieldCheck size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Registration Number</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{providerData.registrationNumber || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Activity size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Medical Council</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.medicalCouncil || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Award size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Professional Degrees</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.degrees?.length > 0 ? providerData.degrees.join(', ') : '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Briefcase size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Affiliated Institution</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.medicalCollege || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentTab === 'availability' && providerData && (
+        <div className="modern-profile-shell animate-slide-up" style={{ display: 'block' }}>
+           <div className="info-pack-card" style={{ padding: '40px' }}>
+              <div className="pack-header" style={{ marginBottom: '32px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Clock size={28} color="var(--primary)" />
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 900 }}>Schedule & Availability</h2>
+                </div>
+                {!isEditingAvailability && (
+                  <button 
+                    onClick={() => startEditingAvailability()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Edit size={16} /> Edit Schedule
+                  </button>
+                )}
+              </div>
+              
+              {/* Capacity Hero Section */}
+              <div className="capacity-hero-glass">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ background: 'var(--primary-light)', padding: '8px', borderRadius: '10px' }}>
+                        <Zap size={18} color="var(--primary)" />
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>Throughput Capacity</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>Global setting for patient visit duration across all scheduled slots.</p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {isEditingAvailability ? (
+                      <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '12px 20px', borderRadius: '20px', border: '1.5px solid var(--primary)', boxShadow: '0 10px 20px rgba(var(--primary-rgb), 0.1)' }}>
+                        <input 
+                          type="number" 
+                          value={editAvailabilityData.slotDuration} 
+                          onChange={handleSlotDurationChange}
+                          style={{ width: '80px', border: 'none', background: 'transparent', outline: 'none', fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', textAlign: 'center' }}
+                        />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Minutes</span>
+                      </div>
+                    ) : (
+                      <div style={{ background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', padding: '16px 32px', borderRadius: '22px', color: 'white', boxShadow: '0 10px 25px rgba(14, 165, 233, 0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.6rem', fontWeight: 900 }}>{providerData.slotDuration || 15}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9 }}>Mins / Visit</span>
+                      </div>
+                    )}
+                    
+                    {!isEditingAvailability && (
+                      <button 
+                        onClick={() => startEditingAvailability()}
+                        className="btn btn-secondary"
+                        style={{ width: '48px', height: '48px', borderRadius: '16px', padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'white', border: '1px solid #e2e8f0' }}
+                      >
+                         <Edit size={18} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Availability Grid */}
+              <div className="availability-planner-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
-                   const dayObj = (isEditing ? editFormData.availability : providerData.availability)?.find(a => a.day === day);
+                   const dayObj = isEditingAvailability 
+                     ? editAvailabilityData.availability.find(a => a.day === day)
+                     : providerData.availability?.find(a => a.day === day);
+                   
                    return (
-                     <div key={day} className={`planner-day-card ${dayObj ? 'active' : ''}`}>
-                        <div className="planner-status-row">
-                          <h4>{day}</h4>
-                          {isEditing ? (
-                            <input 
-                              type="checkbox" 
-                              checked={!!dayObj} 
-                              onChange={() => toggleAvailability(day)} 
-                              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
-                            />
+                     <div key={day} className={`availability-card-glass ${dayObj ? 'active' : ''}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{day}</h4>
+                          {isEditingAvailability ? (
+                            <button 
+                              type="button" 
+                              onClick={() => toggleInlineDay(day)}
+                              style={{ 
+                                padding: '8px 18px', borderRadius: '14px', fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer',
+                                background: dayObj ? 'rgba(16, 185, 129, 0.1)' : '#f1f5f9', color: dayObj ? '#10b981' : '#94a3b8', border: 'none',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {dayObj ? '• ONLINE' : '• OFFLINE'}
+                            </button>
                           ) : (
-                            <div className={`status-badge-unified ${dayObj ? 'sb-confirmed' : 'sb-completed'}`}>
-                              {dayObj ? 'Online' : 'Off'}
+                            <div className={`status-badge-unified ${dayObj ? 'sb-confirmed' : 'sb-completed'}`} style={{ padding: '6px 14px', fontSize: '0.7rem' }}>
+                              {dayObj ? 'ONLINE' : 'OFF'}
                             </div>
                           )}
                         </div>
-
-                        {dayObj ? (
-                          <div className="slot-time-input-group">
-                            <input 
-                               type="time" 
-                               disabled={!isEditing}
-                               value={dayObj.slots[0].startTime} 
-                               onChange={(e) => updateSlotTime(day, 'startTime', e.target.value)} 
-                            />
-                            <span className="text-muted" style={{ fontSize: '0.65rem', fontWeight: 800 }}>TO</span>
-                            <input 
-                               type="time" 
-                               disabled={!isEditing}
-                               value={dayObj.slots[0].endTime} 
-                               onChange={(e) => updateSlotTime(day, 'endTime', e.target.value)} 
-                            />
-                          </div>
+                        
+                        {isEditingAvailability ? (
+                          dayObj ? (
+                            <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+                               <div style={{ position: 'relative', flex: 1 }}>
+                                  <Clock size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', opacity: 0.6 }} />
+                                  <input 
+                                    type="time" 
+                                    value={dayObj.slots[0]?.startTime || '09:00'} 
+                                    onChange={(e) => handleInlineAvailabilityChange(day, 'startTime', e.target.value)}
+                                    style={{ width: '100%', padding: '12px 12px 12px 36px', borderRadius: '16px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}
+                                  />
+                               </div>
+                               <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#cbd5e1' }}>TO</span>
+                               <div style={{ position: 'relative', flex: 1 }}>
+                                  <Clock size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', opacity: 0.6 }} />
+                                  <input 
+                                    type="time" 
+                                    value={dayObj.slots[0]?.endTime || '17:00'} 
+                                    onChange={(e) => handleInlineAvailabilityChange(day, 'endTime', e.target.value)}
+                                    style={{ width: '100%', padding: '12px 12px 12px 36px', borderRadius: '16px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}
+                                  />
+                               </div>
+                            </div>
+                          ) : (
+                            <div style={{ padding: '12px 0' }}>
+                              <div className="rest-recharge-state">
+                                <Moon size={18} />
+                                <p>OFF DUTY</p>
+                              </div>
+                            </div>
+                          )
                         ) : (
-                          <div style={{ padding: '12px', textAlign: 'center', opacity: 0.5 }}>
-                            <p className="text-xs font-bold italic">Unscheduled</p>
-                          </div>
+                          dayObj ? (
+                            <div className="time-badge-premium">
+                              <span>{dayObj.slots[0]?.startTime || '09:00'}</span>
+                              <TrendingUp size={16} style={{ color: '#bae6fd', transform: 'rotate(90deg)' }} />
+                              <span>{dayObj.slots[0]?.endTime || '17:00'}</span>
+                            </div>
+                          ) : (
+                            <div className="rest-recharge-state">
+                              <Moon size={22} />
+                              <p>REST & RECHARGE</p>
+                            </div>
+                          )
                         )}
                      </div>
                    )
                 })}
               </div>
 
-              {isEditing && (
-                 <div className="profile-footer-actions">
-                    <Button variant="secondary" onClick={() => setIsEditing(false)} style={{ borderRadius: '12px' }}>Discard Edits</Button>
-                    <Button onClick={handleSaveProfile} loading={saving} style={{ borderRadius: '12px', padding: '10px 24px' }}>Publish Identity</Button>
-                 </div>
+              {/* Action Buttons */}
+              {isEditingAvailability && (
+                <div style={{ marginTop: '40px', display: 'flex', gap: '16px' }}>
+                  <Button 
+                    variant="primary" 
+                    onClick={handleSaveAvailability} 
+                    loading={loading}
+                    style={{ flex: 1, borderRadius: '16px', padding: '16px', fontSize: '1rem', fontWeight: 800 }}
+                  >
+                    Save Changes
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => setIsEditingAvailability(false)} 
+                    disabled={loading}
+                    style={{ flex: 1, borderRadius: '16px', padding: '16px', fontSize: '1rem', fontWeight: 800 }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               )}
-            </div>
-          </div>
+
+              {!isEditingAvailability && (
+                <div style={{ marginTop: '48px', padding: '24px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
+                   <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: '1.6' }}>
+                     <strong>Stability Tip:</strong> Keeping consistent availability helps patients book appointments more reliably. Changes to your schedule will take effect immediately for future bookings.
+                   </p>
+                </div>
+              )}
+           </div>
         </div>
+      )}
+        </>
       )}
     </DashboardShell>
   );

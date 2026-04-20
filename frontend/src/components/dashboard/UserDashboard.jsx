@@ -12,6 +12,7 @@ import DashboardShell from './layout/DashboardShell';
 import AppointmentListCard from './common/AppointmentListCard';
 import StatCard from './common/StatCard';
 import { useToast } from '../../context/ToastContext';
+import ProfileWizard from './ProfileWizard';
 
 const UserDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
@@ -301,6 +302,27 @@ const UserDashboard = ({ handleLogout }) => {
     setCurrentTab('appointments');
   };
 
+  const isProfileIncomplete = !userData?.phone || !userData?.dob || !userData?.gender || !userData?.address;
+  const [showProfileWizard, setShowProfileWizard] = useState(false);
+  
+  const calculateCompleteness = () => {
+    if (!userData) return 0;
+    const fields = ['phone', 'gender', 'dob', 'address', 'bloodGroup', 'city', 'pinCode', 'govtId', 'emergencyContact.name', 'insurance.provider'];
+    let filled = 0;
+    fields.forEach(f => {
+      if (f.includes('.')) {
+        const [pa, ch] = f.split('.');
+        if (userData[pa]?.[ch]) filled++;
+      } else if (userData[f]) {
+        filled++;
+      }
+    });
+    // Base name/email are always there
+    return Math.round(((filled + 2) / (fields.length + 2)) * 100);
+  };
+
+  const completeness = calculateCompleteness();
+
   const getRecentlyVisitedDepts = () => {
     if (!bookingData.hospitalId) return [];
     const seen = new Set();
@@ -345,12 +367,57 @@ const UserDashboard = ({ handleLogout }) => {
       {currentTab === 'overview' && (
         <div className="dashboard-overview animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto' }}>
           {/* Welcome Header */}
-          <div className="overview-header" style={{ marginBottom: '40px' }}>
+          <div className="overview-header" style={{ marginBottom: '32px' }}>
             <h1 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>
               Welcome back, <span className="text-gradient">{userData?.name?.split(' ')[0]}</span>!
             </h1>
             <p className="text-muted" style={{ fontSize: '1.2rem', fontWeight: 500 }}>Your personalized health identity and schedule insights.</p>
           </div>
+
+          {/* Profile Completeness Banner */}
+          {isProfileIncomplete && !showProfileWizard && (
+            <div className="profile-completeness-banner animate-fade-in" style={{
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              padding: '24px 32px',
+              borderRadius: '28px',
+              color: 'white',
+              marginBottom: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 20px 40px -12px rgba(79, 70, 229, 0.4)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ position: 'absolute', right: '-20px', top: '-10px', opacity: 0.1, transform: 'rotate(15deg)' }}>
+                <Activity size={180} />
+              </div>
+              <div style={{ flex: 1, position: 'relative', zIndex: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                  <ShieldCheck size={24} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Profile Security</span>
+                </div>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '4px' }}>Level Up Your Medical Identity</h3>
+                <p style={{ opacity: 0.9, fontSize: '1rem', maxWidth: '500px', fontWeight: 500 }}>
+                  Your profile is {completeness}% complete. Add your health records and emergency contacts for a safer healthcare experience.
+                </p>
+                <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <button 
+                    onClick={() => {
+                        setShowProfileWizard(true);
+                        setCurrentTab('profile'); // Switch to profile tab view
+                    }}
+                    style={{ background: 'white', color: '#4f46e5', padding: '10px 24px', borderRadius: '14px', border: 'none', fontWeight: 800, cursor: 'pointer', transition: 'all 0.3s ease' }}
+                  >
+                    Complete Now
+                  </button>
+                  <div style={{ width: '150px', height: '8px', background: 'rgba(255,255,255,0.2)', borderRadius: '10px' }}>
+                    <div style={{ width: `${completeness}%`, height: '100%', background: 'white', borderRadius: '10px' }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stat Grid */}
           <div className="stats-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '40px' }}>
@@ -958,243 +1025,261 @@ const UserDashboard = ({ handleLogout }) => {
       )}
 
       {currentTab === 'profile' && userData && (
-        <div className="modern-profile-shell animate-slide-up">
-          {/* LEFT COLUMN: Identity Sidebar */}
-          <div className="profile-sidebar-card">
-            <div className="profile-avatar-giant-box">
-              <img 
-                src={profileForm.avatar || userData.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} 
-                alt={userData.name} 
-                className="profile-avatar-giant" 
-              />
-              {editMode && (
-                <label className="avatar-edit-glare">
-                  <Camera size={20} />
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => setProfileForm({...profileForm, avatar: reader.result});
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-            
-            <h2>{userData.name}</h2>
-            <p className="user-email">{userData.email}</p>
-
-            <div className="profile-progress-widget">
-              <div className="progress-label-row">
-                <span>Identity Completion</span>
-                <span>{Math.round((Object.values({
-                  phone: userData.phone,
-                  age: userData.age,
-                  bloodGroup: userData.bloodGroup,
-                  state: userData.state,
-                  address: userData.address
-                }).filter(Boolean).length / 5) * 100)}%</span>
-              </div>
-              <div className="progress-bar-rail">
-                <div 
-                  className="progress-bar-fill" 
-                  style={{ width: `${(Object.values({
-                    phone: userData.phone,
-                    age: userData.age,
-                    bloodGroup: userData.bloodGroup,
-                    state: userData.state,
-                    address: userData.address
-                  }).filter(Boolean).length / 5) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="profile-summary-vitals">
-              <div className="mini-vital-box">
-                <label>Vitals</label>
-                <span className="blood-group-tag">{userData.bloodGroup || 'N/A'}</span>
-              </div>
-              <div className="mini-vital-box">
-                <label>Age</label>
-                <span>{userData.age || '--'} Yrs</span>
-              </div>
-            </div>
-
-            {!editMode ? (
-              <Button 
-                variant="primary" 
-                className="w-full mt-8" 
-                onClick={() => setEditMode(true)}
-                style={{ borderRadius: '16px', padding: '14px' }}
+        <div className="modern-profile-shell animate-slide-up" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          {showProfileWizard ? (
+            <div className="profile-wizard-viewport">
+              <button 
+                onClick={() => setShowProfileWizard(false)}
+                style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: 700, marginBottom: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
               >
-                <Edit3 size={18} className="mr-2" /> Edit Profile
-              </Button>
-            ) : (
-              <p className="mt-8 text-xs font-bold text-muted uppercase tracking-widest">Editing Mode Active</p>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN: Information Content */}
-          <form onSubmit={handleUpdateProfile} className="profile-main-content">
-            {/* MEDICAL PACK */}
-            <div className="info-pack-card animate-slide-up animate-delay-1">
-              <div className="pack-header">
-                <Activity size={22} />
-                <h3>Medical Identity</h3>
-              </div>
-              
-              <div className="pack-grid">
-                <div className="modern-field-group">
-                  <label><Calendar size={16} /> Biological Age</label>
-                  {editMode ? (
-                    <InputField 
-                      type="number" 
-                      value={profileForm.age} 
-                      onChange={(e) => setProfileForm({...profileForm, age: e.target.value})} 
-                      placeholder="e.g. 28"
-                    />
-                  ) : (
-                    <div className="modern-value-display">{userData.age ? `${userData.age} Years Old` : 'Not Set'}</div>
+                <ChevronLeft size={20} /> Return to standard profile
+              </button>
+              <ProfileWizard 
+                user={userData} 
+                onComplete={(updatedUser) => {
+                  setUserData(updatedUser);
+                  setShowProfileWizard(false);
+                }} 
+              />
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '40px' }}>
+              {/* LEFT COLUMN: Identity Sidebar */}
+              <div className="profile-sidebar-card glass-stat">
+                <div className="profile-avatar-giant-box">
+                  <img 
+                    src={profileForm.avatar || userData.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} 
+                    alt={userData.name} 
+                    className="profile-avatar-giant" 
+                  />
+                  {editMode && (
+                    <label className="avatar-edit-glare">
+                      <Camera size={20} />
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setProfileForm({...profileForm, avatar: reader.result});
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
                   )}
                 </div>
+                
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 900, marginTop: '20px' }}>{userData.name}</h2>
+                <p className="user-email" style={{ color: '#64748b', marginBottom: '24px' }}>{userData.email}</p>
 
-                <div className="modern-field-group">
-                  <label><Shield size={16} /> Blood Type</label>
-                  {editMode ? (
-                    <select 
-                      className="input-field" 
-                      style={{ height: '52px', borderRadius: '16px' }}
-                      value={profileForm.bloodGroup} 
-                      onChange={(e) => setProfileForm({...profileForm, bloodGroup: e.target.value})}
+                <div className="profile-progress-widget">
+                  <div className="progress-label-row">
+                    <span>Identity Completion</span>
+                    <span>{completeness}%</span>
+                  </div>
+                  <div className="progress-bar-rail">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ width: `${completeness}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="profile-summary-vitals" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <div className="mini-vital-box">
+                    <label>Vitals</label>
+                    <span className="blood-group-tag">{userData.bloodGroup || 'N/A'}</span>
+                  </div>
+                  <div className="mini-vital-box">
+                    <label>Age</label>
+                    <span>{userData.age || '--'} Yrs</span>
+                  </div>
+                </div>
+
+                {!editMode ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '32px' }}>
+                    <Button 
+                        variant="primary" 
+                        className="w-full" 
+                        onClick={() => setEditMode(true)}
+                        style={{ borderRadius: '16px', padding: '14px' }}
                     >
-                      <option value="">Select Group</option>
-                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                        <option key={bg} value={bg}>{bg}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="modern-value-display">
-                      {userData.bloodGroup ? (
-                        <span className="blood-type-ribbon">{userData.bloodGroup} Positive</span>
+                        <Edit3 size={18} className="mr-2" /> Edit Basic Info
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        className="w-full" 
+                        onClick={() => setShowProfileWizard(true)}
+                        style={{ borderRadius: '16px', padding: '14px', border: '1.5px dashed var(--primary)' }}
+                    >
+                        <Activity size={18} className="mr-2" /> Medical Passport
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-8 text-xs font-bold text-muted uppercase tracking-widest">Editing Mode Active</p>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: Information Content */}
+              <form onSubmit={handleUpdateProfile} className="profile-main-content">
+                {/* MEDICAL PACK */}
+                <div className="info-pack-card animate-slide-up animate-delay-1">
+                  <div className="pack-header">
+                    <Activity size={22} />
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Medical Identity</h3>
+                  </div>
+                  
+                  <div className="pack-grid">
+                    <div className="modern-field-group">
+                      <label><Calendar size={16} /> Biological Age</label>
+                      {editMode ? (
+                        <InputField 
+                          type="number" 
+                          value={profileForm.age} 
+                          onChange={(e) => setProfileForm({...profileForm, age: e.target.value})} 
+                          placeholder="e.g. 28"
+                        />
                       ) : (
-                        'Not Specified'
+                        <div className="modern-value-display">{userData.age ? `${userData.age} Years Old` : 'Not Set'}</div>
                       )}
+                    </div>
+
+                    <div className="modern-field-group">
+                      <label><Activity size={16} /> Blood Type</label>
+                      {editMode ? (
+                        <select 
+                          className="input-field" 
+                          style={{ height: '52px', borderRadius: '16px' }}
+                          value={profileForm.bloodGroup} 
+                          onChange={(e) => setProfileForm({...profileForm, bloodGroup: e.target.value})}
+                        >
+                          <option value="">Select Group</option>
+                          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                            <option key={bg} value={bg}>{bg}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="modern-value-display">
+                          {userData.bloodGroup ? (
+                            <span className="blood-type-ribbon">{userData.bloodGroup} Positive</span>
+                          ) : (
+                            'Not Specified'
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CONTACT PACK */}
+                <div className="info-pack-card animate-slide-up animate-delay-2">
+                  <div className="pack-header">
+                    <Phone size={22} />
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Communication</h3>
+                  </div>
+                  
+                  <div className="pack-grid">
+                    <div className="modern-field-group">
+                      <label><Phone size={16} /> Primary Phone</label>
+                      {editMode ? (
+                        <InputField 
+                          value={profileForm.phone} 
+                          onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} 
+                          placeholder="+91 XXXXX XXXXX"
+                        />
+                      ) : (
+                        <div className="modern-value-display">{userData.phone || 'No phone linked'}</div>
+                      )}
+                    </div>
+
+                    <div className="modern-field-group">
+                      <label><Mail size={16} /> Recovery email</label>
+                      <div className="modern-value-display" style={{ opacity: 0.6 }}>{userData.email}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ADDRESS PACK */}
+                <div className="info-pack-card animate-slide-up animate-delay-3">
+                  <div className="pack-header">
+                    <MapPin size={22} />
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Residency</h3>
+                  </div>
+                  
+                  <div className="pack-grid" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="modern-field-group">
+                      <label>State & Region</label>
+                      {editMode ? (
+                        <select
+                          className="input-field"
+                          style={{ height: '52px', borderRadius: '16px' }}
+                          value={profileForm.state}
+                          onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
+                        >
+                          <option value="">Select Region</option>
+                          {[
+                            "Andhra Pradesh", "Assam", "Bihar", "Gujarat", "Haryana", "Karnataka", 
+                            "Kerala", "Madhya Pradesh", "Maharashtra", "Punjab", "Rajasthan", 
+                            "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal", "Delhi"
+                          ].map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      ) : (
+                        <div className="modern-value-display">{userData.state || 'Region not set'}</div>
+                      )}
+                    </div>
+
+                    <div className="modern-field-group">
+                      <label>Street Address</label>
+                      {editMode ? (
+                        <InputField 
+                          value={profileForm.address} 
+                          onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} 
+                          placeholder="Detailed address..."
+                        />
+                      ) : (
+                        <div className="modern-value-display">{userData.address || 'Address not registered'}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {editMode && (
+                    <div className="profile-footer-actions" style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+                      <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => {
+                          setEditMode(false);
+                          setProfileForm({
+                            name: userData.name,
+                            phone: userData.phone || '',
+                            age: userData.age || '',
+                            bloodGroup: userData.bloodGroup || '',
+                            avatar: userData.avatar || '',
+                            state: userData.state || '',
+                            address: userData.address || ''
+                          });
+                        }}
+                        style={{ borderRadius: '12px' }}
+                      >
+                        Discard Changes
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        loading={loading} 
+                        variant="primary"
+                        style={{ borderRadius: '12px', padding: '10px 24px' }}
+                      >
+                        Save Identity
+                      </Button>
                     </div>
                   )}
                 </div>
-              </div>
+              </form>
             </div>
-
-            {/* CONTACT PACK */}
-            <div className="info-pack-card animate-slide-up animate-delay-2">
-              <div className="pack-header">
-                <Phone size={22} />
-                <h3>Communication</h3>
-              </div>
-              
-              <div className="pack-grid">
-                <div className="modern-field-group">
-                  <label><Phone size={16} /> Primary Phone</label>
-                  {editMode ? (
-                    <InputField 
-                      value={profileForm.phone} 
-                      onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} 
-                      placeholder="+91 XXXXX XXXXX"
-                    />
-                  ) : (
-                    <div className="modern-value-display">{userData.phone || 'No phone linked'}</div>
-                  )}
-                </div>
-
-                <div className="modern-field-group">
-                  <label><Mail size={16} /> Recovery email</label>
-                  <div className="modern-value-display" style={{ opacity: 0.6 }}>{userData.email}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* ADDRESS PACK */}
-            <div className="info-pack-card animate-slide-up animate-delay-3">
-              <div className="pack-header">
-                <MapPin size={22} />
-                <h3>Residency</h3>
-              </div>
-              
-              <div className="pack-grid" style={{ gridTemplateColumns: '1fr' }}>
-                <div className="modern-field-group">
-                  <label>State & Region</label>
-                  {editMode ? (
-                    <select
-                      className="input-field"
-                      style={{ height: '52px', borderRadius: '16px' }}
-                      value={profileForm.state}
-                      onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
-                    >
-                      <option value="">Select Region</option>
-                      {[
-                        "Andhra Pradesh", "Assam", "Bihar", "Gujarat", "Haryana", "Karnataka", 
-                        "Kerala", "Madhya Pradesh", "Maharashtra", "Punjab", "Rajasthan", 
-                        "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal", "Delhi"
-                      ].map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  ) : (
-                    <div className="modern-value-display">{userData.state || 'Region not set'}</div>
-                  )}
-                </div>
-
-                <div className="modern-field-group">
-                  <label>Street Address</label>
-                  {editMode ? (
-                    <InputField 
-                      value={profileForm.address} 
-                      onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} 
-                      placeholder="Detailed address..."
-                    />
-                  ) : (
-                    <div className="modern-value-display">{userData.address || 'Address not registered'}</div>
-                  )}
-                </div>
-              </div>
-
-              {editMode && (
-                <div className="profile-footer-actions">
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    onClick={() => {
-                      setEditMode(false);
-                      setProfileForm({
-                        name: userData.name,
-                        phone: userData.phone || '',
-                        age: userData.age || '',
-                        bloodGroup: userData.bloodGroup || '',
-                        avatar: userData.avatar || '',
-                        state: userData.state || '',
-                        address: userData.address || ''
-                      });
-                    }}
-                    style={{ borderRadius: '12px' }}
-                  >
-                    Discard Changes
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    loading={loading} 
-                    variant="primary"
-                    style={{ borderRadius: '12px', padding: '10px 24px' }}
-                  >
-                    Save Identity
-                  </Button>
-                </div>
-              )}
-            </div>
-          </form>
+          )}
         </div>
       )}
       {/* Global Hidden Ticket for Export */}

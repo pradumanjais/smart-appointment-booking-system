@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, UserPlus, Phone, Eye, EyeOff, Calendar, Droplet, MapPin, PlusSquare } from 'lucide-react';
+import { 
+  User, Mail, Lock, UserPlus, Phone, Eye, EyeOff, Calendar, 
+  Droplet, MapPin, PlusSquare, ArrowRight, ArrowLeft, 
+  Ambulance, ShieldCheck, CheckCircle2, ChevronRight,
+  Stethoscope, Activity
+} from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
@@ -12,35 +17,37 @@ const Register = ({ setUser }) => {
     name: '',
     email: '',
     password: '',
-    phone: '',
-    age: '',
-    bloodGroup: '',
-    state: '',
-    address: '',
+    confirmPassword: '',
     role: 'user',
+    consent: false
   });
 
-  const indianStates = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
-    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", 
-    "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
-    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", 
-    "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
-    "Uttarakhand", "West Bengal",
-    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
-    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-  ].sort();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { showToast } = useToast();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({ 
+      ...formData, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.consent) {
+      showToast('Please agree to the terms and data consent.', 'error');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      showToast('Passwords do not match.', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -48,7 +55,7 @@ const Register = ({ setUser }) => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
-      showToast('Account created successfully!', 'success');
+      showToast('Welcome to SmartBook!', 'success');
       navigate('/dashboard');
     } catch (err) {
       const msg = err.response?.data?.message || 'Something went wrong. Please try again.';
@@ -61,151 +68,105 @@ const Register = ({ setUser }) => {
   return (
     <AuthLayout
       title="Create Account"
-      subtitle="Join SmartBook to find the best experts for your needs."
+      subtitle="Select your role and provide credentials to join our community."
+      isWide={true}
     >
       <form onSubmit={handleSubmit} className="auth-form">
-        <InputField
-          label="Full Name"
-          name="name"
-          type="text"
-          placeholder="John Doe"
-          icon={User}
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-        <InputField
-          label="Email Address"
-          name="email"
-          type="email"
-          placeholder="name@example.com"
-          icon={Mail}
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-
-        <div className="form-row">
-          <InputField
-            label="Phone Number"
-            name="phone"
-            type="tel"
-            placeholder="123-456-7890"
-            icon={Phone}
-            value={formData.phone}
-            onChange={handleChange}
-          />
-        <div className="identity-selector-group">
-          <label className="input-label">Select Your Identity</label>
-          <div className="role-selection-grid">
-            <div 
-              className={`role-tile ${formData.role === 'user' ? 'selected' : ''}`}
-              onClick={() => setFormData({...formData, role: 'user'})}
-            >
-              <div className="role-tile-icon"><User size={24} /></div>
-              <div className="role-tile-text">
+        <div className="auth-form-step">
+          {/* Identity Selection - Consolidated & Sleek */}
+          <div className="identity-selector-group" style={{ marginBottom: '16px' }}>
+            <label className="input-label mb-2" style={{ textAlign: 'center', display: 'block', fontSize: '0.8rem', opacity: 0.7 }}>Account Role</label>
+            <div className="role-selection-grid compact" style={{ gap: '12px' }}>
+              <div 
+                className={`role-tile-mini ${formData.role === 'user' ? 'selected' : ''}`}
+                onClick={() => setFormData({...formData, role: 'user'})}
+              >
+                <div className="role-tile-icon">
+                  <User size={18} />
+                </div>
                 <strong>Patient</strong>
-                <span>Find & book care</span>
               </div>
-            </div>
-            <div 
-              className={`role-tile ${formData.role === 'provider' ? 'selected' : ''}`}
-              onClick={() => setFormData({...formData, role: 'provider'})}
-            >
-              <div className="role-tile-icon"><PlusSquare size={24} /></div>
-              <div className="role-tile-text">
+              <div 
+                className={`role-tile-mini ${formData.role === 'provider' ? 'selected' : ''}`}
+                onClick={() => setFormData({...formData, role: 'provider'})}
+              >
+                <div className="role-tile-icon">
+                  <Stethoscope size={18} />
+                </div>
                 <strong>Provider</strong>
-                <span>Manage practice</span>
               </div>
             </div>
           </div>
-        </div>
-        </div>
-        <div className="form-row">
-          <div className="input-wrapper">
-             <label className="input-label">Select State / UT</label>
-             <div className="input-container">
-               <select
-                 name="state"
-                 className="input-field"
-                 value={formData.state}
-                 onChange={handleChange}
-                 required
-               >
-                 <option value="">Choose your region</option>
-                 {indianStates.map(s => (
-                   <option key={s} value={s}>{s}</option>
-                 ))}
-               </select>
-             </div>
-          </div>
-        </div>
-        <div className="form-row">
+
+          <div className="form-group-title" style={{ marginTop: '8px' }}><Lock size={16} /> Credentials</div>
+          
           <InputField
-            label="Full Address"
-            name="address"
+            label="Full Name (as per ID)"
+            name="name"
             type="text"
-            placeholder="House No, Street, Landmark"
-            icon={MapPin}
-            value={formData.address}
+            placeholder="Arjun Mehra"
+            icon={User}
+            value={formData.name}
             onChange={handleChange}
             required
           />
-        </div>
+          
+          <InputField
+            label="Email Address"
+            name="email"
+            type="email"
+            placeholder="arjun@example.com"
+            icon={Mail}
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
 
-        {formData.role === 'user' && (
           <div className="form-row">
             <InputField
-              label="Age (Optional)"
-              name="age"
-              type="number"
-              placeholder="e.g. 30"
-              icon={Calendar}
-              value={formData.age}
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              icon={Lock}
+              value={formData.password}
               onChange={handleChange}
+              required
             />
-            <div className="input-wrapper">
-              <label className="input-label">Blood Group</label>
-              <div className="input-container">
-                <select
-                  name="bloodGroup"
-                  className="input-field"
-                  value={formData.bloodGroup}
-                  onChange={handleChange}
-                >
-                  <option value="">Select (Optional)</option>
-                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                    <option key={bg} value={bg}>{bg}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <InputField
+              label="Confirm Password"
+              name="confirmPassword"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              icon={Lock}
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              rightElement={
+                <button type="button" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
+            />
           </div>
-        )}
+          
+          <div style={{ marginTop: '20px', padding: '12px 16px', background: 'var(--primary-light)', borderRadius: '12px', marginBottom: '20px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+              <input type="checkbox" name="consent" checked={formData.consent} onChange={handleChange} style={{ width: '16px', height: '16px' }} required />
+              I agree to the Terms & Data Privacy Policy
+            </label>
+          </div>
 
-        <InputField
-          label="Password"
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          placeholder="••••••••"
-          icon={Lock}
-          value={formData.password}
-          onChange={handleChange}
-          required
-          rightElement={
-            <button type="button" onClick={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          }
-        />
+          <div className="auth-nav-btns" style={{ marginTop: '0' }}>
+            <Button type="submit" loading={loading} className="w-full">
+              Join SmartBook <ArrowRight size={18} />
+            </Button>
+          </div>
 
-        <Button type="submit" loading={loading} className="w-full">
-          <UserPlus size={20} /> Create Account
-        </Button>
-
-        <div className="auth-footer">
-          Already have an account?
-          <Link to="/login" className="auth-link">Sign In</Link>
+          <div className="auth-footer" style={{ marginTop: '24px' }}>
+            Already have an account?
+            <Link to="/login" className="auth-link">Sign In</Link>
+          </div>
         </div>
       </form>
     </AuthLayout>

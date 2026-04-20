@@ -42,7 +42,7 @@
 }
 
 .hero-section {
-  padding: 0 0 40px;
+  padding: 0 0 24px;
 }
 
 .hero-container {
@@ -121,10 +121,10 @@
 
 /* Premium Status Cards - Multi-Card Layout */
 .trust-stats-section {
-  margin-top: -60px;
+  margin-top: -50px;
   position: relative;
   z-index: 20;
-  padding: 0 20px 40px;
+  padding: 0 20px 24px;
 }
 
 .trust-bar-header-outer {
@@ -134,18 +134,19 @@
   gap: 12px;
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--primary);
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 24px;
+  letter-spacing: 2.5px;
+  margin-bottom: 32px;
   background: white;
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
-  padding: 10px 24px;
+  padding: 12px 28px;
   border-radius: var(--radius-full);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-light);
 }
 
 .stats-cards-grid {
@@ -155,34 +156,32 @@
 }
 
 .stat-card-premium {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  padding: 24px;
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  padding: 32px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: var(--shadow);
   height: 100%;
 }
 
 .stat-card-premium:hover {
-  transform: translateY(-8px);
+  transform: translateY(-10px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--primary-light);
-  background: white;
+  border-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .stat-card-inner {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   height: 100%;
 }
 
 .stat-icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
   background: var(--primary-light);
   display: flex;
   align-items: center;
@@ -191,13 +190,14 @@
   transition: var(--transition);
 }
 
-.stat-icon-box.bg-light {
+.stat-icon-box.bg-success-light {
   background: var(--success-light);
   color: var(--success);
 }
 
 .stat-card-premium:hover .stat-icon-box {
-  transform: scale(1.1) rotate(5deg);
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 8px 16px -4px rgba(var(--primary-rgb), 0.15);
 }
 
 .stat-card-content {
@@ -207,19 +207,20 @@
 }
 
 .stat-card-number {
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 800;
   color: var(--text);
   font-family: 'Outfit', sans-serif;
-  line-height: 1.2;
+  line-height: 1;
+  margin-bottom: 4px;
 }
 
 .stat-card-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-muted);
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .stat-card-title {
@@ -227,12 +228,13 @@
   font-weight: 800;
   color: var(--text);
   font-family: 'Outfit', sans-serif;
+  margin-bottom: 2px;
 }
 
 .stat-card-desc {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 @media (max-width: 1280px) {

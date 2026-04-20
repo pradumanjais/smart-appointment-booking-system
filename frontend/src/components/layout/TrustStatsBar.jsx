@@ -6,58 +6,63 @@ const TrustStatsBar = ({ stats }) => {
   const items = [
     {
       type: 'trust',
-      icon: <CheckCircle size={24} className="text-success" />,
+      icon: <CheckCircle size={22} />,
       label: 'Verified Doctor',
-      description: 'Medical Experts'
+      description: 'Medical Experts',
+      accentClass: 'bg-success-light'
     },
     {
       type: 'trust',
-      icon: <Calendar size={24} className="text-primary" />,
+      icon: <Calendar size={22} />,
       label: 'Instant Booking',
-      description: 'Direct Confirmation'
+      description: 'Direct Confirmation',
+      accentClass: 'bg-primary-light'
     },
     {
       type: 'stat',
       value: `${stats.hospitals}+`,
       label: 'Flagship Hospitals',
-      icon: <Hospital size={20} />
+      icon: <Hospital size={20} />,
+      accentClass: 'bg-primary-light'
     },
     {
       type: 'stat',
       value: `${stats.experts}+`,
       label: 'Medical Experts',
-      icon: <Users size={20} />
+      icon: <Users size={20} />,
+      accentClass: 'bg-primary-light'
     },
     {
       type: 'stat',
       value: `${stats.specialties}+`,
       label: 'Specializations',
-      icon: <Stethoscope size={20} />
+      icon: <Stethoscope size={20} />,
+      accentClass: 'bg-primary-light'
     }
   ];
 
   return (
     <div className="trust-stats-section container">
       <div className="trust-bar-header-outer">
-         <Activity size={18} className="text-primary" />
+         <Activity size={16} className="text-primary" />
          <span>Smart Healthcare Appointment Booking</span>
       </div>
       <div className="stats-cards-grid">
         {items.map((item, index) => (
-          <div key={index} className="stat-card-premium glass-card animate-fade-in shadow-hover" style={{ animationDelay: `${index * 0.1}s` }}>
+          <div key={index} className="stat-card-premium animate-fade-in shadow-hover" style={{ animationDelay: `${index * 0.1}s` }}>
             <div className="stat-card-inner">
-              <div className={`stat-icon-box ${item.type === 'trust' ? 'bg-light' : ''}`}>
+              <div className={`stat-icon-box ${item.accentClass}`}>
                 {item.icon}
               </div>
               <div className="stat-card-content">
                 {item.type === 'stat' ? (
                   <>
-                    <span className="stat-card-number">{item.value}</span>
+                    <h3 className="stat-card-number">{item.value}</h3>
                     <span className="stat-card-label">{item.label}</span>
                   </>
                 ) : (
                   <>
-                    <span className="stat-card-title">{item.label}</span>
+                    <h3 className="stat-card-title">{item.label}</h3>
                     <span className="stat-card-desc">{item.description}</span>
                   </>
                 )}

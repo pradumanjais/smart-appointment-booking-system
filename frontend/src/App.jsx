@@ -4,6 +4,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import UserDashboard from './components/dashboard/UserDashboard';
 import ProviderDashboard from './components/dashboard/ProviderDashboard';
+import DoctorSearch from './components/search/DoctorSearch';
 import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/layout/Navbar';
 import LandingPage from './components/layout/LandingPage';
@@ -62,6 +63,7 @@ function App() {
               path="/register" 
               element={!user ? <Register setUser={setUser} /> : <Navigate to="/dashboard" />} 
             />
+            <Route path="/doctors" element={<DoctorSearch />} />
             <Route 
               path="/dashboard" 
               element={

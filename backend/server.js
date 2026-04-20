@@ -16,12 +16,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const errorMiddleware = require('./middleware/errorMiddleware');
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/providers', require('./routes/provider'));
 app.use('/api/bookings', require('./routes/booking'));
 app.use('/api/hospitals', require('./routes/hospital'));
 app.use('/api/stats', require('./routes/stats'));
+
+// Custom Error Handler Middleware
+app.use(errorMiddleware);
 
 app.get('/', (req, res) => {
   res.send('Smart Appointment Booking System API is running...');

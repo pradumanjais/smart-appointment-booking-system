@@ -16,13 +16,13 @@
 .btn-primary {
   background-color: var(--primary);
   color: white;
-  box-shadow: 0 4px 14px 0 rgba(var(--primary-rgb), 0.39);
+  box-shadow: 0 4px 14px 0 rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-primary:hover {
   background-color: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.23);
+  box-shadow: 0 8px 24px rgba(var(--primary-rgb), 0.25);
 }
 
 .btn-secondary {
@@ -77,8 +77,7 @@
 
 .input-wrapper {
   position: relative;
-  display: flex;
-  align-items: center;
+  width: 100%;
 }
 
 .input-field {
@@ -125,20 +124,21 @@
 .ui-card {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
   transition: var(--transition);
   overflow: hidden;
 }
 
 .ui-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
   box-shadow: var(--shadow-md);
+  border-color: var(--border);
 }
 
-.p-sm { padding: 12px; }
-.p-md { padding: 24px; }
-.p-lg { padding: 40px; }
+.p-sm { padding: 16px; }
+.p-md { padding: 32px; }
+.p-lg { padding: 48px; }
 
 /* Toasts */
 .toast {
@@ -188,7 +188,7 @@
 
 /* Base UI Layout Styles */
 .section {
-  padding: 100px 0;
+  padding: 80px 0;
 }
 
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; }
@@ -230,8 +230,9 @@
 
 .section-subtitle {
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   line-height: 1.7;
+  font-weight: 500;
 }
 
 .text-muted {

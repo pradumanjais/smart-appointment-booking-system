@@ -28,6 +28,13 @@ const userSchema = new mongoose.Schema({
   age: {
     type: Number,
   },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
+  },
+  dob: {
+    type: Date,
+  },
   bloodGroup: {
     type: String,
     trim: true,
@@ -36,9 +43,37 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  city: {
+    type: String,
+    trim: true,
+  },
+  pinCode: {
+    type: String,
+    trim: true,
+  },
   address: {
     type: String,
     trim: true,
+  },
+  govtId: {
+    type: String,
+    trim: true,
+  },
+  // Medical Details
+  allergies: [String],
+  conditions: [String],
+  medications: [String],
+  pastSurgeries: [String],
+  // Emergency Contact
+  emergencyContact: {
+    name: String,
+    relation: String,
+    phone: String,
+  },
+  // Insurance
+  insurance: {
+    provider: String,
+    policyNumber: String,
   },
   avatar: {
     type: String,

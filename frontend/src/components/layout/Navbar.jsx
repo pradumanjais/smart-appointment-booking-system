@@ -11,7 +11,8 @@ import {
   Shield,
   Circle,
   Menu,
-  X
+  X,
+  Search
 } from 'lucide-react';
 import Button from '../common/Button';
 import '../ui/ui.css';
@@ -57,6 +58,10 @@ const Navbar = ({ user, handleLogout }) => {
         
         {/* Desktop Links */}
         <div className="nav-links desktop-only">
+          <Link to="/doctors" className="nav-link-premium">
+            <Search size={18} /> 
+            <span>Find Doctors</span>
+          </Link>
           {user ? (
             <>
               <Link to="/dashboard" className="nav-link-premium">

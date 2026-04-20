@@ -12,9 +12,12 @@ const validate = (req, res, next) => {
 const providerProfileValidator = [
   body('specialization').notEmpty().withMessage('Specialization is required').trim(),
   body('experience').isNumeric().withMessage('Experience must be a number'),
-  body('pricePerHour').isNumeric().withMessage('Price per hour must be a number'),
-  body('availability').isArray().withMessage('Availability must be an array'),
-  body('hospitalId').notEmpty().withMessage('Hospital allocation is required'),
+  body('registrationNumber').notEmpty().withMessage('Medical Registration Number is required').trim(),
+  body('medicalCouncil').notEmpty().withMessage('Medical Council Name is required').trim(),
+  body('fathersName').notEmpty().withMessage("Father's Name is required").trim(),
+  body('mothersName').notEmpty().withMessage("Mother's Name is required").trim(),
+  body('yearOfDegreeAchieved').isNumeric().withMessage('Degree achievement year is required'),
+  body('bio').notEmpty().withMessage('Professional bio is required').trim(),
   validate,
 ];
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, User, PlusSquare, LogOut, Activity, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { Calendar, User, PlusSquare, LogOut, Activity, ChevronLeft, ChevronRight, LayoutDashboard, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ currentTab, setCurrentTab, user, role, handleLogout }) => {
@@ -15,7 +15,8 @@ const Sidebar = ({ currentTab, setCurrentTab, user, role, handleLogout }) => {
 
   const providerMenu = [
     { id: 'appointments', label: 'Daily Schedule', icon: Calendar },
-    { id: 'profile', label: 'Expert Identity', icon: User },
+    { id: 'availability', label: 'Schedule & Availability', icon: Clock },
+    { id: 'profile', label: 'Your Profile', icon: User },
   ];
 
   const menu = role === 'provider' ? providerMenu : userMenu;

@@ -27,7 +27,12 @@ const ProfileWizard = ({ user, onComplete }) => {
     emergencyRelation: user?.emergencyContact?.relation || '',
     emergencyPhone: user?.emergencyContact?.phone || '',
     insuranceProvider: user?.insurance?.provider || '',
-    insurancePolicy: user?.insurance?.policyNumber || ''
+    insurancePolicy: user?.insurance?.policyNumber || '',
+    fathersName: user?.fathersName || '',
+    mothersName: user?.mothersName || '',
+    languagePreference: user?.languagePreference || 'English',
+    notificationSms: user?.notificationPreferences?.sms ?? true,
+    notificationEmail: user?.notificationPreferences?.email ?? true,
   });
 
   const handleChange = (e) => {
@@ -59,6 +64,11 @@ const ProfileWizard = ({ user, onComplete }) => {
         insurance: {
           provider: formData.insuranceProvider,
           policyNumber: formData.insurancePolicy
+        },
+        notificationPreferences: {
+          sms: formData.notificationSms,
+          email: formData.notificationEmail,
+          app: true
         }
       };
 
@@ -136,6 +146,10 @@ const ProfileWizard = ({ user, onComplete }) => {
                 </div>
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+              <InputField label="Father's Name" name="fathersName" type="text" icon={User} value={formData.fathersName} onChange={handleChange} placeholder="Full name" />
+              <InputField label="Mother's Name" name="mothersName" type="text" icon={User} value={formData.mothersName} onChange={handleChange} placeholder="Full name" />
+            </div>
             <InputField label="Street Address" name="address" type="text" placeholder="Detailed address..." icon={MapPin} value={formData.address} onChange={handleChange} required />
             
             <div className="wizard-actions" style={{ marginTop: '32px' }}>
@@ -176,11 +190,29 @@ const ProfileWizard = ({ user, onComplete }) => {
               <InputField label="Relationship" name="emergencyRelation" type="text" icon={User} value={formData.emergencyRelation} onChange={handleChange} />
             </div>
             <InputField label="Emergency Phone" name="emergencyPhone" type="tel" icon={Phone} value={formData.emergencyPhone} onChange={handleChange} />
-            
+
             <div style={{ margin: '24px 0', borderTop: '1px dashed #e2e8f0', paddingTop: '24px' }}>
+                <h4 style={{ marginBottom: '16px', fontWeight: 800 }}>Account Preferences</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                    <InputField label="Insurance Provider" name="insuranceProvider" type="text" icon={ShieldCheck} value={formData.insuranceProvider} onChange={handleChange} />
-                    <InputField label="Policy Number" name="insurancePolicy" type="text" icon={ShieldCheck} value={formData.insurancePolicy} onChange={handleChange} />
+                    <div className="input-field-wrapper">
+                        <label className="input-label">Preferred Language</label>
+                        <select name="languagePreference" className="input-field" value={formData.languagePreference} onChange={handleChange}>
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Spanish">Spanish</option>
+                        </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b' }}>Notifications</label>
+                        <div style={{ display: 'flex', gap: '16px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                                <input type="checkbox" name="notificationSms" checked={formData.notificationSms} onChange={e => setFormData({...formData, notificationSms: e.target.checked})} /> SMS
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                                <input type="checkbox" name="notificationEmail" checked={formData.notificationEmail} onChange={e => setFormData({...formData, notificationEmail: e.target.checked})} /> Email
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
             

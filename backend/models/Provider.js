@@ -14,6 +14,9 @@ const providerSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   fathersName: { type: String, trim: true },
   mothersName: { type: String, trim: true },
+  address: { type: String, trim: true },
+  state: { type: String, trim: true },
+  pinCode: { type: String, trim: true },
 
   // Qualifications
   // ---------------------------------------------------
@@ -36,6 +39,8 @@ const providerSchema = new mongoose.Schema({
   // ---------------------------------------------------
   clinicName: { type: String },
   clinicAddress: { type: String },
+  clinicState: { type: String },
+  clinicPinCode: { type: String },
   consultationFees: {
     inPerson: { type: Number, default: 0 },
     online: { type: Number, default: 0 }
@@ -51,7 +56,8 @@ const providerSchema = new mongoose.Schema({
   slotDuration: { type: Number, default: 15 }, // in minutes
   bufferTime: { type: Number, default: 5 }, // buffer between appts in mins
   autoAccept: { type: Boolean, default: true },
-  maxPatientsPerSlot: { type: Number, default: 1 },
+  throughputCapacity: { type: Number, default: 1 }, // max patients per slot
+  maxPatientsPerSlot: { type: Number, default: 1 }, // Legacy field, keeping for compatibility
   breakTimes: [
     {
       startTime: String,

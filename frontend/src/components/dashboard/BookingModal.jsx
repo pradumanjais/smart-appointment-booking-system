@@ -11,6 +11,8 @@ const BookingModal = ({ provider: initialProvider, onClose, onSuccess }) => {
   const [hospitals, setHospitals] = useState([]);
   const [availableProviders, setAvailableProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState(initialProvider || null);
+  const [previousVisits, setPreviousVisits] = useState([]);
+  const [loadingVisits, setLoadingVisits] = useState(false);
   
   // Form State
   const [bookingData, setBookingData] = useState({
@@ -38,6 +40,56 @@ const BookingModal = ({ provider: initialProvider, onClose, onSuccess }) => {
     };
     fetchHospitals();
   }, []);
+
+  // Fetch previous visits when Follow-up is selected
+  useEffect(() => {
+    let isMounted = true;
+    if (bookingData.appointmentType === 'Follow-up') {
+      const fetchHistory = async () => {
+        setLoadingVisits(true);
+        try {
+          const { data } = await api.get('/bookings/my-appointments');
+          if (!isMounted) return;
+          
+          // Process to get unique doctor-clinic combinations
+          const uniqueVisits = [];
+          const seen = new Set();
+          
+          if (Array.isArray(data)) {
+            data.forEach(appt => {
+              const provider = appt.providerId;
+              if (!provider) return;
+
+              const providerId = provider._id || provider;
+              const hospitalId = appt.hospitalId?._id || appt.hospitalId;
+              const clinicName = appt.clinicName || appt.hospitalId?.name;
+              
+              const key = `${providerId}-${hospitalId || clinicName}`;
+              
+              if (providerId && (hospitalId || clinicName) && !seen.has(key)) {
+                seen.add(key);
+                uniqueVisits.push({
+                  provider: provider,
+                  hospital: appt.hospitalId,
+                  clinicName: appt.clinicName,
+                  department: appt.department,
+                  lastDate: appt.date
+                });
+              }
+            });
+          }
+          
+          setPreviousVisits(uniqueVisits);
+        } catch (err) {
+          console.error('Error fetching appointment history:', err);
+        } finally {
+          if (isMounted) setLoadingVisits(false);
+        }
+      };
+      fetchHistory();
+    }
+    return () => { isMounted = false; };
+  }, [bookingData.appointmentType]);
 
   // Fetch providers when hospital and department are selected
   useEffect(() => {
@@ -174,6 +226,70 @@ const BookingModal = ({ provider: initialProvider, onClose, onSuccess }) => {
                   Follow-up
                 </button>
               </div>
+
+              {bookingData.appointmentType === 'Follow-up' && (
+                <div className="previous-visits-section animate-fade-in" style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #e2e8f0' }}>                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={16} className="text-primary" /> Quick Select Previous Visits
+                  </h4>
+                  
+                  {loadingVisits ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
+                      <div className="loading-spinner-small" style={{ marginBottom: '8px' }}></div>
+                      Fetching your medical history...
+                    </div>
+                  ) : previousVisits.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+                      {previousVisits.map((visit, index) => (
+                        <div 
+                          key={index}
+                          className="previous-visit-card"
+                          onClick={() => {
+                            setSelectedProvider(visit.provider);
+                            setSelectedHospital(visit.hospital);
+                            setBookingData({
+                              ...bookingData,
+                              hospitalId: visit.hospital?._id || visit.hospital || (visit.clinicName ? `clinic:${visit.clinicName}` : ''),
+                              hospitalState: visit.hospital?.state || visit.provider?.state || '',
+                              department: visit.department,
+                              appointmentType: 'Follow-up'
+                            });
+                            setStep(6);
+                          }}
+                          style={{ 
+                            background: 'white', 
+                            padding: '14px', 
+                            borderRadius: '16px', 
+                            border: '1.5px solid #f1f5f9',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <img 
+                            src={visit.provider?.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/3774/3774299.png'} 
+                            alt="Doctor" 
+                            style={{ width: '45px', height: '45px', borderRadius: '12px', background: '#f1f5f9' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>Dr. {visit.provider?.userId?.name || 'Expert'}</p>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                              {visit.hospital?.name || visit.clinicName || 'Clinic'} • {visit.department}
+                            </p>
+                          </div>
+                          <ChevronRight size={18} color="#94a3b8" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 500, background: 'white', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
+                      No visit history found. Please select "New Case" or search for a doctor manually.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

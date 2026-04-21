@@ -14,9 +14,12 @@ const appointmentSchema = new mongoose.Schema({
   hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Hospital',
-    required: [true, 'Hospital is required'],
+    required: false, // Optional for clinic-based bookings
   },
+  clinicName: String,
+  clinicAddress: String,
   hospitalState: String,
+  clinicPinCode: String,
   appointmentMode: {
     type: String,
     enum: ['Physical', 'Video'],

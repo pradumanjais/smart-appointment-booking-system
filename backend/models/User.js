@@ -35,6 +35,14 @@ const userSchema = new mongoose.Schema({
   dob: {
     type: Date,
   },
+  fathersName: {
+    type: String,
+    trim: true,
+  },
+  mothersName: {
+    type: String,
+    trim: true,
+  },
   bloodGroup: {
     type: String,
     trim: true,
@@ -55,6 +63,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  patientId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow nulls for old users until generated
+  },
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
   govtId: {
     type: String,
     trim: true,
@@ -69,6 +87,20 @@ const userSchema = new mongoose.Schema({
     name: String,
     relation: String,
     phone: String,
+  },
+  // Preferences
+  notificationPreferences: {
+    sms: { type: Boolean, default: true },
+    email: { type: Boolean, default: true },
+    app: { type: Boolean, default: true },
+  },
+  languagePreference: {
+    type: String,
+    default: 'English',
+  },
+  privacySettings: {
+    dataShared: { type: Boolean, default: false },
+    profileVisible: { type: Boolean, default: true },
   },
   // Insurance
   insurance: {

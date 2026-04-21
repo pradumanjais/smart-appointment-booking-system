@@ -7,7 +7,7 @@ const DailyScheduleCalendar = ({ appointments = [], providerData = {} }) => {
   
   // Slots Configuration
   const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 AM to 8:00 PM
-  const slotsPerHour = providerData.slotsPerHour || 1;
+  const totalCapacity = providerData.throughputCapacity || providerData.maxPatientsPerSlot || 1;
 
   // Generate Week Dates
   const weekDates = useMemo(() => {
@@ -55,10 +55,10 @@ const DailyScheduleCalendar = ({ appointments = [], providerData = {} }) => {
   };
 
   const getCapacityClass = (count) => {
-    const ratio = count / slotsPerHour;
-    if (ratio === 0) return '';
-    if (ratio < 0.5) return 'low';
-    if (ratio < 1) return 'medium';
+    const ratio = count / totalCapacity;
+    if (ratio === 0) return 'available';
+    if (ratio < 0.5) return 'available';
+    if (ratio < 1) return 'partial';
     return 'full';
   };
 
@@ -86,7 +86,7 @@ const DailyScheduleCalendar = ({ appointments = [], providerData = {} }) => {
         <div className="calendar-meta" style={{ display: 'flex', gap: '16px' }}>
           <div className="meta-badge">
             <Users size={14} className="text-primary" />
-            <span>Capacity: {slotsPerHour}/hr</span>
+            <span>Capacity: {totalCapacity}/slot</span>
           </div>
         </div>
       </div>
@@ -119,7 +119,7 @@ const DailyScheduleCalendar = ({ appointments = [], providerData = {} }) => {
 
                 {HOURS.map(hour => {
                    const slotData = dayAppts[hour] || { appts: [], count: 0 };
-                   const fillWidth = Math.min((slotData.count / slotsPerHour) * 100, 100);
+                   const fillWidth = Math.min((slotData.count / totalCapacity) * 100, 100);
 
                    return (
                      <div key={hour} className="grid-slot">

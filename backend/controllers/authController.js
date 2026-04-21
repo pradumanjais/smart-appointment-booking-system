@@ -1,6 +1,13 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Provider = require('../models/Provider');
+const crypto = require('crypto');
+
+// Helper: Generate Unique Patient ID
+const generatePatientId = () => {
+  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `PAT-${random}`;
+};
 
 // Register User
 const registerUser = async (req, res) => {
@@ -9,7 +16,7 @@ const registerUser = async (req, res) => {
       name, email, password, role, phone, age, gender, dob, 
       bloodGroup, state, city, pinCode, address, govtId,
       allergies, conditions, medications, pastSurgeries,
-      emergencyContact, insurance 
+      emergencyContact, insurance, fathersName, mothersName 
     } = req.body;
 
     // Normalize email
@@ -32,17 +39,13 @@ const registerUser = async (req, res) => {
       gender, 
       dob,
       bloodGroup, 
-      state, 
-      city, 
-      pinCode, 
-      address, 
-      govtId,
-      allergies, 
-      conditions, 
-      medications, 
-      pastSurgeries,
-      emergencyContact, 
-      insurance
+      patientId: generatePatientId(),
+      username: normalizedEmail.split('@')[0] + Math.floor(Math.random() * 1000),
+      // Only set address/identity for standard users
+      ...(role !== 'provider' ? {
+        state, city, pinCode, address,
+        fathersName, mothersName
+      } : {})
     });
 
     if (user) {
@@ -53,7 +56,12 @@ const registerUser = async (req, res) => {
             userId: user._id,
             specialization: 'General', // Default placeholder
             experience: 0,
-            hospitalId: null // To be filled in wizard
+            hospitalId: null, // To be filled in wizard
+            fathersName,
+            mothersName,
+            address,
+            state,
+            pinCode
           });
         } catch (pErr) {
           console.error('Error initializing provider profile:', pErr);
@@ -132,7 +140,9 @@ const updateProfile = async (req, res) => {
       name, phone, age, bloodGroup, avatar, state, address,
       gender, dob, govtId,
       allergies, conditions, medications, pastSurgeries,
-      emergencyContact, insurance
+      emergencyContact, insurance,
+      fathersName, mothersName, username, pinCode,
+      notificationPreferences, languagePreference, privacySettings
     } = req.body;
 
     const user = await User.findById(req.user.id);
@@ -151,6 +161,14 @@ const updateProfile = async (req, res) => {
     if (gender) user.gender = gender;
     if (dob) user.dob = dob;
     if (govtId) user.govtId = govtId;
+    
+    // Only update residential/identity fields for non-providers
+    if (user.role !== 'provider') {
+      if (state) user.state = state;
+      if (address) user.address = address;
+      if (pinCode) user.pinCode = pinCode;
+      // fathersName/mothersName removed from User schema
+    }
 
     // Update medical arrays
     if (allergies) user.allergies = allergies;
@@ -164,6 +182,17 @@ const updateProfile = async (req, res) => {
     }
     if (insurance) {
       user.insurance = { ...user.insurance, ...insurance };
+    }
+
+    // Update remaining profile fields
+    if (username) user.username = username;
+    if (languagePreference) user.languagePreference = languagePreference;
+    
+    if (notificationPreferences) {
+      user.notificationPreferences = { ...user.notificationPreferences, ...notificationPreferences };
+    }
+    if (privacySettings) {
+      user.privacySettings = { ...user.privacySettings, ...privacySettings };
     }
 
     const updatedUser = await user.save();

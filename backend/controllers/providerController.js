@@ -9,6 +9,7 @@ const getProviders = async (req, res) => {
     const { 
       search, 
       specialization, 
+      hospitalId,
       minFee, 
       maxFee, 
       mode, 
@@ -47,6 +48,21 @@ const getProviders = async (req, res) => {
       matchQuery.specialization = { $regex: specialization, $options: 'i' };
     }
 
+    // Hospital Filter (Supports both MongoDB ObjectIds and Synthetic Clinic IDs)
+    if (hospitalId) {
+      const mongoose = require('mongoose');
+      if (typeof hospitalId === 'string' && hospitalId.startsWith('clinic:')) {
+        // Extract clinic name from synthetic ID: "clinic:Name-State"
+        const clinicName = hospitalId.split(':')[1].split('-')[0];
+        matchQuery.clinicName = clinicName;
+      } else if (mongoose.Types.ObjectId.isValid(hospitalId)) {
+        matchQuery.hospitalId = new mongoose.Types.ObjectId(hospitalId);
+      } else {
+        // Fallback for name-based lookup if it's not a valid ObjectId
+        matchQuery.clinicName = hospitalId;
+      }
+    }
+
     // Fee range (Checking both modes)
     if (minFee || maxFee) {
       const feeMatch = {};
@@ -78,6 +94,24 @@ const getProviders = async (req, res) => {
 
     pipeline.push({ $sort: sortObj });
 
+    // 4.5 Join with Hospitals details
+    pipeline.push({
+      $lookup: {
+        from: 'hospitals',
+        localField: 'hospitalId',
+        foreignField: '_id',
+        as: 'hospitalDetails'
+      }
+    });
+    
+    // Optional unwind
+    pipeline.push({
+      $unwind: {
+        path: '$hospitalDetails',
+        preserveNullAndEmptyArrays: true
+      }
+    });
+
     // 5. Projection (Clean up response)
     pipeline.push({
       $project: {
@@ -88,13 +122,22 @@ const getProviders = async (req, res) => {
         consultationFees: 1,
         consultationModes: 1,
         clinicName: 1,
+        clinicAddress: 1,
+        clinicState: 1,
+        clinicPinCode: 1,
         location: 1,
         bio: 1,
         isVerified: 1,
         'userId.name': '$userDetails.name',
         'userId.email': '$userDetails.email',
         'userId.avatar': '$userDetails.avatar',
-        'userId._id': '$userDetails._id'
+        'userId._id': '$userDetails._id',
+        'hospitalId': {
+          _id: '$hospitalDetails._id',
+          name: '$hospitalDetails.name',
+          address: '$hospitalDetails.address',
+          state: '$hospitalDetails.state'
+        }
       }
     });
 
@@ -125,15 +168,15 @@ const getProviderById = async (req, res) => {
 // @access  Private/Provider
 const updateProviderProfile = async (req, res) => {
   try {
-    const { 
+    const {
       registrationNumber, medicalCouncil, registrationCertificate,
       degrees, medicalCollege, yearOfDegreeAchieved, specialization, experience,
-      awards, languages, clinicName, clinicAddress,
+      awards, languages, clinicName, clinicAddress, clinicState, clinicPinCode,
       consultationFees, consultationModes,
-      slotDuration, bufferTime, autoAccept, maxPatientsPerSlot,
+      slotDuration, bufferTime, autoAccept, maxPatientsPerSlot, throughputCapacity,
       breakTimes, availability, bankDetails, gstNumber,
       visibility, bio, location, hospitalId,
-      fathersName, mothersName 
+      fathersName, mothersName, address, state, pinCode
     } = req.body;
 
     let provider = await Provider.findOne({ userId: req.user.id });
@@ -147,7 +190,8 @@ const updateProviderProfile = async (req, res) => {
       slotDuration: slotDuration || 15,
       bufferTime: bufferTime || 5,
       autoAccept: autoAccept !== undefined ? autoAccept : true,
-      maxPatientsPerSlot: maxPatientsPerSlot || 1,
+      maxPatientsPerSlot: throughputCapacity || maxPatientsPerSlot || 1,
+      throughputCapacity: throughputCapacity || maxPatientsPerSlot || 1,
       breakTimes: breakTimes || [],
       availability: availability || [
         { day: 'Monday', slots: [{ startTime: '09:00', endTime: '13:00' }] },
@@ -156,7 +200,8 @@ const updateProviderProfile = async (req, res) => {
       ],
       bankDetails: bankDetails || {},
       gstNumber, visibility, bio, location, hospitalId,
-      fathersName, mothersName, clinicName, clinicAddress
+      clinicName, clinicAddress, clinicState, clinicPinCode,
+      fathersName, mothersName, address, state, pinCode
     };
 
     if (provider) {
@@ -164,8 +209,8 @@ const updateProviderProfile = async (req, res) => {
       provider = await Provider.findOneAndUpdate(
         { userId: req.user.id },
         profileData,
-        { new: true, runValidators: true }
-      ).populate('userId', 'name email avatar phone address state role');
+        { returnDocument: 'after', runValidators: true }
+      ).populate('userId', 'name email avatar phone address state pinCode fathersName mothersName role');
     } else {
       // Create
       provider = await Provider.create({
@@ -173,7 +218,7 @@ const updateProviderProfile = async (req, res) => {
         ...profileData
       });
       // Populate the newly created document
-      provider = await Provider.findById(provider._id).populate('userId', 'name email avatar phone address state role');
+      provider = await Provider.findById(provider._id).populate('userId', 'name email avatar phone address state pinCode fathersName mothersName role');
     }
 
     res.json(provider);
@@ -188,7 +233,7 @@ const updateProviderProfile = async (req, res) => {
 const getProviderMe = async (req, res) => {
   try {
     const provider = await Provider.findOne({ userId: req.user.id })
-      .populate('userId', 'name email avatar phone age bloodGroup role address state')
+      .populate('userId', 'name email avatar phone age bloodGroup role address state pinCode fathersName mothersName')
       .populate('hospitalId', 'name state address');
 
     if (!provider) {

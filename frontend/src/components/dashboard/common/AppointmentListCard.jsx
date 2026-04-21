@@ -90,7 +90,7 @@ const AppointmentListCard = ({
               onClick={() => onDownload(appointment)}
               style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '12px' }}
             >
-              <Download size={16} /> Get Ticket
+              <Download size={16} /> Download
             </button>
           )}
 

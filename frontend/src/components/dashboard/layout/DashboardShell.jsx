@@ -23,11 +23,13 @@ const DashboardShell = ({ children, currentTab, setCurrentTab, user, role, handl
       <main className="main-content-wrapper">
         <header className="dashboard-top-header">
            <div className="header-left">
-              <div className="header-greeting">
+               <div className="header-greeting">
                 <span className="role-badge-header">
-                  {role === 'provider' ? 'Medical Expert Account' : 'Patient Care Portal'}
+                  {role === 'provider' ? 'Medical Expert Access' : 'Patient Care Portal'}
                 </span>
-                <h1>{getGreeting()}, {user?.name?.split(' ')[0] || 'User'}</h1>
+                <h1 style={{ marginTop: '4px', letterSpacing: '-1px' }}>
+                  {getGreeting()}, <span style={{ color: 'var(--primary)' }}>{user?.name?.split(' ')[0] || 'User'}</span>!
+                </h1>
               </div>
            </div>
 

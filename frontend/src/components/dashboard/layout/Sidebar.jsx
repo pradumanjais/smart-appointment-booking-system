@@ -10,7 +10,7 @@ const Sidebar = ({ currentTab, setCurrentTab, user, role, handleLogout }) => {
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'browse', label: 'Book Experts', icon: PlusSquare },
     { id: 'appointments', label: 'My Schedule', icon: Calendar },
-    { id: 'profile', label: 'Health Passport', icon: User },
+    { id: 'profile', label: 'Your Profile', icon: User },
   ];
 
   const providerMenu = [

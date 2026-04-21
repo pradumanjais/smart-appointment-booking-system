@@ -29,6 +29,7 @@ const ProviderDashboard = ({ handleLogout }) => {
   const [isEditingAvailability, setIsEditingAvailability] = useState(false);
   const [editAvailabilityData, setEditAvailabilityData] = useState({
     slotDuration: 15,
+    throughputCapacity: 1,
     availability: []
   });
   
@@ -47,6 +48,7 @@ const ProviderDashboard = ({ handleLogout }) => {
   const startEditingAvailability = () => {
     setEditAvailabilityData({
       slotDuration: providerData?.slotDuration || 15,
+      throughputCapacity: providerData?.throughputCapacity || providerData?.maxPatientsPerSlot || 1,
       availability: providerData?.availability || []
     });
     setIsEditingAvailability(true);
@@ -77,8 +79,8 @@ const ProviderDashboard = ({ handleLogout }) => {
     });
   };
 
-  const handleSlotDurationChange = (e) => {
-    setEditAvailabilityData(prev => ({ ...prev, slotDuration: e.target.value }));
+  const handleThroughputCapacityChange = (e) => {
+    setEditAvailabilityData(prev => ({ ...prev, throughputCapacity: e.target.value }));
   };
 
   const handleSaveAvailability = async () => {
@@ -104,6 +106,7 @@ const ProviderDashboard = ({ handleLogout }) => {
         consultationModes: providerData.consultationModes,
         hospitalId: providerData.hospitalId?._id || providerData.hospitalId,
         slotDuration: Number(editAvailabilityData.slotDuration),
+        throughputCapacity: Number(editAvailabilityData.throughputCapacity),
         availability: editAvailabilityData.availability,
         visibility: providerData.visibility || 'public'
       };
@@ -207,7 +210,7 @@ const ProviderDashboard = ({ handleLogout }) => {
       specialization: providerData?.specialization || '',
       experience: providerData?.experience || 0,
       pricePerHour: providerData?.consultationFees?.inPerson || 0,
-      slotsPerHour: providerData?.slotDuration || 15,
+      slotsPerHour: providerData.throughputCapacity || providerData.maxPatientsPerSlot || 1,
       bio: providerData?.bio || '',
       location: providerData?.location || '',
       availability: providerData?.availability ? [...providerData.availability] : []
@@ -537,8 +540,8 @@ const ProviderDashboard = ({ handleLogout }) => {
                 <div className="vital-icon-box" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
                   <Clock size={18} />
                 </div>
-                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Slot Size</label>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.slotDuration || 15} Min</span>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Capacity</label>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.throughputCapacity || 1} Per Slot</span>
               </div>
             </div>
 
@@ -608,7 +611,28 @@ const ProviderDashboard = ({ handleLogout }) => {
                   <div className="data-icon-wrapper"><MapPin size={18} /></div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Base State</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.location || providerData.userId?.state || '—'}</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.state || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><User size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Father's Name</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.fathersName || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><User size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Mother's Name</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.mothersName || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Full Residential PIN</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.pinCode || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -632,21 +656,30 @@ const ProviderDashboard = ({ handleLogout }) => {
                    </div>
                 </div>
                 
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Address</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicAddress || 'Not Specified'}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                  <div className="data-item-premium">
+                    <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic Address</label>
+                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicAddress || '—'}</span>
+                    </div>
+                  </div>
+                  <div className="data-item-premium">
+                    <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic State</label>
+                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicState || '—'}</span>
+                    </div>
+                  </div>
+                  <div className="data-item-premium">
+                    <div className="data-icon-wrapper"><MapPin size={18} /></div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic PIN Code</label>
+                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicPinCode || '—'}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>State / Region</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.location || 'Not Specified'}</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -713,125 +746,96 @@ const ProviderDashboard = ({ handleLogout }) => {
                 )}
               </div>
               
-              {/* Capacity Hero Section */}
-              <div className="capacity-hero-glass">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+              {/* Compact Capacity Section */}
+              <div className="capacity-bar-compact">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'var(--primary-light)', padding: '8px', borderRadius: '10px' }}>
+                    <Zap size={18} color="var(--primary)" />
+                  </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                      <div style={{ background: 'var(--primary-light)', padding: '8px', borderRadius: '10px' }}>
-                        <Zap size={18} color="var(--primary)" />
-                      </div>
-                      <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>Throughput Capacity</h4>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>Throughput Capacity</h4>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>Patients allowed per scheduled time slot.</p>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  {isEditingAvailability ? (
+                    <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '8px 16px', borderRadius: '14px', border: '1.5px solid var(--primary)', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.1)' }}>
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={editAvailabilityData.throughputCapacity} 
+                        onChange={handleThroughputCapacityChange}
+                        style={{ width: '60px', border: 'none', background: 'transparent', outline: 'none', fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary)', textAlign: 'center' }}
+                      />
+                      <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--primary)', textTransform: 'uppercase' }}>Slots</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>Global setting for patient visit duration across all scheduled slots.</p>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    {isEditingAvailability ? (
-                      <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '12px 20px', borderRadius: '20px', border: '1.5px solid var(--primary)', boxShadow: '0 10px 20px rgba(var(--primary-rgb), 0.1)' }}>
-                        <input 
-                          type="number" 
-                          value={editAvailabilityData.slotDuration} 
-                          onChange={handleSlotDurationChange}
-                          style={{ width: '80px', border: 'none', background: 'transparent', outline: 'none', fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', textAlign: 'center' }}
-                        />
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Minutes</span>
-                      </div>
-                    ) : (
-                      <div style={{ background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', padding: '16px 32px', borderRadius: '22px', color: 'white', boxShadow: '0 10px 25px rgba(14, 165, 233, 0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <span style={{ fontSize: '1.6rem', fontWeight: 900 }}>{providerData.slotDuration || 15}</span>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9 }}>Mins / Visit</span>
-                      </div>
-                    )}
-                    
-                    {!isEditingAvailability && (
-                      <button 
-                        onClick={() => startEditingAvailability()}
-                        className="btn btn-secondary"
-                        style={{ width: '48px', height: '48px', borderRadius: '16px', padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'white', border: '1px solid #e2e8f0' }}
-                      >
-                         <Edit size={18} />
-                      </button>
-                    )}
-                  </div>
+                  ) : (
+                    <div style={{ background: 'var(--primary)', padding: '10px 24px', borderRadius: '14px', color: 'white', fontWeight: 900, fontSize: '1.1rem', boxShadow: '0 8px 16px rgba(var(--primary-rgb), 0.2)' }}>
+                      {providerData.throughputCapacity || 1} <span style={{ fontSize: '0.7rem', opacity: 0.8, marginLeft: '4px' }}>PER SLOT</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Availability Grid */}
-              <div className="availability-planner-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+              {/* Seamless Availability List */}
+              <div className="availability-list-seamless">
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
                    const dayObj = isEditingAvailability 
                      ? editAvailabilityData.availability.find(a => a.day === day)
                      : providerData.availability?.find(a => a.day === day);
                    
                    return (
-                     <div key={day} className={`availability-card-glass ${dayObj ? 'active' : ''}`}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h4 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>{day}</h4>
+                     <div key={day} className={`availability-row-seamless ${dayObj ? 'active' : ''}`}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                          <span className="day-label-premium">{day}</span>
+                          
                           {isEditingAvailability ? (
                             <button 
                               type="button" 
                               onClick={() => toggleInlineDay(day)}
-                              style={{ 
-                                padding: '8px 18px', borderRadius: '14px', fontSize: '0.75rem', fontWeight: 900, cursor: 'pointer',
-                                background: dayObj ? 'rgba(16, 185, 129, 0.1)' : '#f1f5f9', color: dayObj ? '#10b981' : '#94a3b8', border: 'none',
-                                transition: 'all 0.2s ease'
-                              }}
+                              className={`status-toggle-seamless ${dayObj ? 'status-toggle-on' : 'status-toggle-off'}`}
                             >
-                              {dayObj ? '• ONLINE' : '• OFFLINE'}
+                              {dayObj ? 'ONLINE' : 'OFFLINE'}
                             </button>
                           ) : (
                             <div className={`status-badge-unified ${dayObj ? 'sb-confirmed' : 'sb-completed'}`} style={{ padding: '6px 14px', fontSize: '0.7rem' }}>
-                              {dayObj ? 'ONLINE' : 'OFF'}
+                              {dayObj ? 'ACTIVE' : 'OFF'}
                             </div>
                           )}
                         </div>
                         
-                        {isEditingAvailability ? (
-                          dayObj ? (
-                            <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
-                               <div style={{ position: 'relative', flex: 1 }}>
-                                  <Clock size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', opacity: 0.6 }} />
+                        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {dayObj ? (
+                            <div className="time-range-seamless">
+                              {isEditingAvailability ? (
+                                <>
                                   <input 
                                     type="time" 
                                     value={dayObj.slots[0]?.startTime || '09:00'} 
                                     onChange={(e) => handleInlineAvailabilityChange(day, 'startTime', e.target.value)}
-                                    style={{ width: '100%', padding: '12px 12px 12px 36px', borderRadius: '16px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}
+                                    className="time-input-premium"
                                   />
-                               </div>
-                               <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#cbd5e1' }}>TO</span>
-                               <div style={{ position: 'relative', flex: 1 }}>
-                                  <Clock size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary)', opacity: 0.6 }} />
+                                  <TrendingUp size={14} style={{ color: '#cbd5e1', transform: 'rotate(90deg)' }} />
                                   <input 
                                     type="time" 
                                     value={dayObj.slots[0]?.endTime || '17:00'} 
                                     onChange={(e) => handleInlineAvailabilityChange(day, 'endTime', e.target.value)}
-                                    style={{ width: '100%', padding: '12px 12px 12px 36px', borderRadius: '16px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}
+                                    className="time-input-premium"
                                   />
-                               </div>
+                                </>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 800, color: '#1e293b', fontSize: '0.95rem' }}>
+                                  <span>{dayObj.slots[0]?.startTime || '09:00'}</span>
+                                  <TrendingUp size={14} style={{ color: '#cbd5e1', transform: 'rotate(90deg)' }} />
+                                  <span>{dayObj.slots[0]?.endTime || '17:00'}</span>
+                                </div>
+                              )}
                             </div>
                           ) : (
-                            <div style={{ padding: '12px 0' }}>
-                              <div className="rest-recharge-state">
-                                <Moon size={18} />
-                                <p>OFF DUTY</p>
-                              </div>
-                            </div>
-                          )
-                        ) : (
-                          dayObj ? (
-                            <div className="time-badge-premium">
-                              <span>{dayObj.slots[0]?.startTime || '09:00'}</span>
-                              <TrendingUp size={16} style={{ color: '#bae6fd', transform: 'rotate(90deg)' }} />
-                              <span>{dayObj.slots[0]?.endTime || '17:00'}</span>
-                            </div>
-                          ) : (
-                            <div className="rest-recharge-state">
-                              <Moon size={22} />
-                              <p>REST & RECHARGE</p>
-                            </div>
-                          )
-                        )}
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.5px' }}>NOT SCHEDULED</span>
+                          )}
+                        </div>
                      </div>
                    )
                 })}

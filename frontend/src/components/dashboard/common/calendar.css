@@ -140,7 +140,8 @@
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.capacity-fill.high { background: #10b981; }
+.capacity-fill.available { background: #10b981; }
+.capacity-fill.partial { background: #f59e0b; }
 .capacity-fill.full { background: #f43f5e; }
 
 /* Event Pills */

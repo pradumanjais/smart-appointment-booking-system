@@ -20,8 +20,8 @@ const bookAppointment = async (req, res) => {
     } = req.body;
 
     // Check if the requested date is in the past
-    const requestedDateObj = new Date(date);
-    requestedDateObj.setHours(0, 0, 0, 0);
+    const [year, month, day] = date.split('-').map(Number);
+    const requestedDateObj = new Date(year, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -35,7 +35,24 @@ const bookAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Provider not found' });
     }
 
-    // 1. Check for slot capacity (Is provider's hourly limit reached?)
+    // 1. Check if the user already has an active booking for this entire day
+    // Use a range query to be robust against time components
+    const startOfDay = new Date(date);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const userBookingExists = await Appointment.findOne({
+      userId: req.user.id,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ['pending', 'confirmed'] }
+    });
+
+    if (userBookingExists) {
+      return res.status(400).json({ message: 'You already have an active appointment scheduled for this day. Only one booking is allowed per day.' });
+    }
+
+    // 2. Check for slot capacity (Is provider's hourly limit reached?)
     const existingCount = await Appointment.countDocuments({
       providerId,
       date,
@@ -43,24 +60,45 @@ const bookAppointment = async (req, res) => {
       status: { $in: ['pending', 'confirmed'] },
     });
 
-    if (existingCount >= (provider.slotsPerHour || 1)) {
+    if (existingCount >= (provider.throughputCapacity || provider.maxPatientsPerSlot || 1)) {
       return res.status(400).json({ message: 'This time slot is fully booked for this expert' });
     }
 
     // 2. Optional: Detailed availability check (Is slot within provider working hours?)
-    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = days[requestedDateObj.getDay()];
     const dayAvailability = provider.availability.find((a) => a.day === dayName);
 
     if (!dayAvailability) {
       return res.status(400).json({ message: `Provider is not available on ${dayName}` });
     }
 
+    // Detect and handle synthetic Clinic IDs
+    let finalHospitalId = hospitalId;
+    let actualClinicName = null;
+    let clinicAddress = null;
+    let clinicPinCode = null;
+    let clinicState = hospitalState;
+
+    if (typeof hospitalId === 'string' && hospitalId.startsWith('clinic:')) {
+      actualClinicName = hospitalId.split(':')[1].split('-')[0];
+      finalHospitalId = undefined; // Nullify so Mongoose doesn't fail Cast
+      
+      // Fetch clinic details from provider profile
+      clinicAddress = provider.address || null;
+      clinicPinCode = provider.pinCode || null;
+      clinicState = provider.state || hospitalState;
+    }
+
     // Create appointment and automatically confirm it based on strict capacity logic
     const appointment = await Appointment.create({
       userId: req.user.id,
       providerId,
-      hospitalId,
-      hospitalState,
+      hospitalId: finalHospitalId,
+      clinicName: actualClinicName,
+      clinicAddress,
+      clinicPinCode,
+      hospitalState: clinicState,
       appointmentMode,
       appointmentType,
       department,
@@ -87,8 +125,8 @@ const getMyAppointments = async (req, res) => {
         path: 'providerId',
         populate: { path: 'userId', select: 'name avatar' }
       })
-      .populate('userId', 'name email avatar')
-      .populate('hospitalId', 'name address state phone departments');
+      .populate('userId', 'name email avatar age fathersName mothersName phone bloodGroup')
+      .populate('hospitalId', 'name address state pinCode phone departments');
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -154,21 +192,55 @@ const updateAppointmentStatus = async (req, res) => {
 // @access  Private/User
 const getDailyCapacity = async (req, res) => {
   try {
-    const { hospitalId, department, date } = req.query;
+    const { hospitalId, department, date, providerId } = req.query;
 
     if (!hospitalId || !department || !date) {
       return res.status(400).json({ message: 'Missing required query parameters' });
     }
 
-    // Parse the requested date to find the day of the week
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+    const mongoose = require('mongoose');
+    let finalHospitalId = hospitalId;
+    let isClinicLookup = false;
+
+    // Handle Synthetic Clinic IDs (from unified locations API)
+    if (typeof hospitalId === 'string' && hospitalId.startsWith('clinic:')) {
+      isClinicLookup = true;
+      // Extract clinic name from synthetic ID: "clinic:Name-State"
+      finalHospitalId = hospitalId.split(':')[1].split('-')[0];
+    } else if (!mongoose.Types.ObjectId.isValid(hospitalId)) {
+      // Resilience for name-based lookup
+      const Hospital = require('../models/Hospital');
+      const hosp = await Hospital.findOne({ name: hospitalId });
+      if (hosp) {
+        finalHospitalId = hosp._id;
+      } else {
+        // Fallback: Check if it's just a clinic name provided as a string
+        isClinicLookup = true;
+        finalHospitalId = hospitalId;
+      }
+    }
+
+    // Parse the requested date to find the day of the week (locale-independent)
+    const [year, month, day] = date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = days[dateObj.getDay()];
+
+    // Check if the date is in the past
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    if (date < todayStr) {
+      return returnUnavailableBlock();
+    }
 
     // Find all providers matching the criteria
-    const providers = await Provider.find({ 
-      hospitalId, 
-      specialization: department 
-    });
+    // If we have a specific providerId, we prioritize that and relax other filters to prevent silent mismatches
+    const query = {
+      ...(isClinicLookup ? { clinicName: finalHospitalId } : { hospitalId: finalHospitalId }),
+      ...(providerId ? { _id: providerId } : { specialization: department })
+    };
+
+    const providers = await Provider.find(query);
 
     // Helper block to generate a fully blocked schedule
     const returnUnavailableBlock = () => {
@@ -181,9 +253,10 @@ const getDailyCapacity = async (req, res) => {
     if (providers.length === 0) {
       return returnUnavailableBlock();
     }
+    
     const activeProviders = providers.filter(p => {
-      // If a provider hasn't set up an explicit availability schedule, we assume they are active.
-      if (!p.availability || p.availability.length === 0) return true; 
+      // Must have availability set up and work on this day
+      if (!p.availability || p.availability.length === 0) return false; 
       return p.availability.some(a => a.day === dayOfWeek);
     });
 
@@ -192,8 +265,6 @@ const getDailyCapacity = async (req, res) => {
       return returnUnavailableBlock();
     }
 
-    // Calculate total campus capacity per timeslot
-    const totalHourlyCapacity = activeProviders.reduce((sum, p) => sum + (p.slotsPerHour || 1), 0);
     const providerIds = activeProviders.map(p => p._id);
 
     // Get all active appointments on this date for these providers
@@ -207,17 +278,51 @@ const getDailyCapacity = async (req, res) => {
     const timeSlots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'];
     const capacityMap = {};
 
+    // Check if the requested date is today
+    const isToday = date === todayStr;
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
     timeSlots.forEach(time => {
+      const [slotHour, slotMinute] = time.split(':').map(Number);
+      
+      // Calculate capacity for this specific timeslot
+      const providersForSlot = activeProviders.filter(p => {
+        const daySched = p.availability.find(a => a.day === dayOfWeek);
+        // Check if the requested 'time' fits within any of the provider's defined slots for that day
+        return daySched && daySched.slots.some(s => {
+          // If a doctor works from 09:00 to 13:00, they are available for 09:00, 10:00, 11:00, 12:00
+          return time >= s.startTime && time < s.endTime;
+        });
+      });
+
+      const currentSlotCapacity = providersForSlot.reduce((sum, p) => sum + (p.throughputCapacity || p.maxPatientsPerSlot || 1), 0);
       const bookedNum = appointments.filter(a => a.startTime === time).length;
-      const percent = totalHourlyCapacity > 0 ? (bookedNum / totalHourlyCapacity) * 100 : 100;
       
       let state = 'available';
-      if (percent >= 100) state = 'full';
-      else if (percent >= 60) state = 'partial';
+      const percent = currentSlotCapacity > 0 ? (bookedNum / currentSlotCapacity) * 100 : 100;
+
+      // 1. Check if the slot time has already passed for today
+      if (isToday) {
+        if (slotHour < currentHour || (slotHour === currentHour && slotMinute <= currentMinute)) {
+          state = 'unavailable';
+        }
+      }
+
+      // 2. Map 'unavailable' if no providers work this specific slot
+      if (currentSlotCapacity === 0) {
+        state = 'unavailable';
+      }
+
+      // 3. Check for capacity if not already marked unavailable
+      if (state !== 'unavailable') {
+        if (percent >= 100) state = 'full';
+        else if (percent >= 50) state = 'partial';
+      }
 
       capacityMap[time] = {
         booked: bookedNum,
-        total: totalHourlyCapacity,
+        total: currentSlotCapacity,
         percent,
         state
       };

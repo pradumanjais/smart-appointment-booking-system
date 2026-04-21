@@ -34,8 +34,11 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
     email: user?.email || existingProfile?.userId?.email || '',
     address: user?.address || '', // Residential
     state: user?.state || existingProfile?.location || '',
+    pinCode: user?.pinCode || '',
     clinicName: existingProfile?.clinicName || '',
     clinicAddress: existingProfile?.clinicAddress || '',
+    clinicState: existingProfile?.clinicState || '',
+    clinicPinCode: existingProfile?.clinicPinCode || '',
     
     // Step 2: Medical Credentials
     registrationNumber: existingProfile?.registrationNumber || '',
@@ -52,6 +55,7 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
 
     // Step 5: Availability
     slotDuration: existingProfile?.slotDuration || 15,
+    throughputCapacity: existingProfile?.throughputCapacity || existingProfile?.maxPatientsPerSlot || 1,
     availability: existingProfile?.availability || [
       { day: 'Monday', slots: [{ startTime: '09:00', endTime: '17:00' }] },
       { day: 'Tuesday', slots: [{ startTime: '09:00', endTime: '17:00' }] },
@@ -95,10 +99,10 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
     if (step === 1) {
       return formData.name && formData.fathersName && formData.mothersName && 
              formData.phone && formData.email && formData.address && 
-             formData.state;
+             formData.state && formData.pinCode;
     }
     if (step === 2) {
-      return formData.clinicName && formData.clinicAddress;
+      return formData.clinicName && formData.clinicAddress && formData.clinicState && formData.clinicPinCode;
     }
     if (step === 3) {
       return formData.registrationNumber && formData.medicalCouncil && 
@@ -138,21 +142,31 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
         location: formData.state,
         clinicName: formData.clinicName,
         clinicAddress: formData.clinicAddress,
+        clinicState: formData.clinicState,
+        clinicPinCode: formData.clinicPinCode,
         awards: formData.awards.split(',').map(s => s.trim()).filter(Boolean),
         slotDuration: Number(formData.slotDuration),
+        throughputCapacity: Number(formData.throughputCapacity),
         availability: formData.availability,
         visibility: 'public'
       };
 
-      const { data } = await api.post('/providers/profile', payload);
+      // 1. Create/Update Provider profile (Stores practice AND personal identity)
+      const { data } = await api.post('/providers/profile', {
+        ...payload,
+        fathersName: formData.fathersName,
+        mothersName: formData.mothersName,
+        address: formData.address, // Residential
+        state: formData.state,     // Residential
+        pinCode: formData.pinCode,  // Residential
+        throughputCapacity: Number(formData.throughputCapacity)
+      });
       
-      // Update User details as well (Email/Phone/State/Address)
+      // 2. Update User core details only (keeping account info in User schema)
       await api.put('/auth/profile', {
         name: formData.name,
         phone: formData.phone,
-        email: formData.email,
-        state: formData.state,
-        address: formData.address
+        email: formData.email
       });
       
       showToast('Practice profile is now live!', 'success');
@@ -240,6 +254,10 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
                 <InputField label="Mother's Name" name="mothersName" value={formData.mothersName} onChange={handleChange} required />
                 <InputField label="Mobile Number" name="phone" value={formData.phone} onChange={handleChange} required />
                 
+                <div style={{ gridColumn: 'span 2' }}>
+                  <InputField label="Residential Address" name="address" value={formData.address} onChange={handleChange} required />
+                </div>
+
                 <div className="modern-field-group">
                     <label className="input-label">State <span style={{ color: '#ef4444' }}>*</span></label>
                     <select name="state" className="input-field" value={formData.state} onChange={handleChange} required>
@@ -247,10 +265,8 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
                         {indianStates.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
-
-                <div style={{ gridColumn: 'span 2' }}>
-                  <InputField label="Residential Address" name="address" value={formData.address} onChange={handleChange} required />
-                </div>
+                
+                <InputField label="PIN Code" name="pinCode" placeholder="6-digit PIN" value={formData.pinCode} onChange={handleChange} required />
             </div>
           </div>
         )}
@@ -270,6 +286,14 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
                 <div style={{ gridColumn: 'span 2' }}>
                     <InputField label="Full Address (Where patients will visit)" name="clinicAddress" value={formData.clinicAddress} onChange={handleChange} required />
                 </div>
+                <div className="modern-field-group">
+                    <label className="input-label">State <span style={{ color: '#ef4444' }}>*</span></label>
+                    <select name="clinicState" className="input-field" value={formData.clinicState} onChange={handleChange} required>
+                        <option value="">Select State</option>
+                        {indianStates.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                </div>
+                <InputField label="PIN Code" name="clinicPinCode" placeholder="6-digit PIN" value={formData.clinicPinCode} onChange={handleChange} required />
             </div>
           </div>
         )}
@@ -310,80 +334,67 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
                 </h3>
             </div>
             
-            <div className="capacity-config-row mb-8 p-6 glass-stat" style={{ borderRadius: '20px', border: '1px solid var(--primary-light)', background: '#f0f9ff' }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="capacity-bar-compact" style={{ marginBottom: '24px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'var(--primary-light)', padding: '8px', borderRadius: '10px' }}>
+                    <Zap size={18} color="var(--primary)" />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Throughput Capacity</h4>
-                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.7 }}>Minutes per patient visit</p>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>Throughput Capacity</h4>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Patients allowed per time slot.</p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <input 
-                      type="number" 
-                      name="slotDuration" 
-                      value={formData.slotDuration} 
-                      onChange={handleChange}
-                      style={{ width: '80px', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}
-                    />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>MINUTES</span>
-                  </div>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input 
+                    type="number" 
+                    name="throughputCapacity" 
+                    min="1"
+                    value={formData.throughputCapacity} 
+                    onChange={handleChange}
+                    style={{ width: '60px', padding: '8px', borderRadius: '10px', border: '1.5px solid var(--primary)', textAlign: 'center', fontWeight: 900, color: 'var(--primary)' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b' }}>SLOTS</span>
                </div>
             </div>
 
             {onlyField !== 'slotDuration' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className="availability-list-seamless">
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
                   const dayObj = formData.availability.find(a => a.day === day);
                   return (
-                    <div key={day} className={`availability-editor-card ${dayObj ? 'active' : ''}`} style={{ 
-                      padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9', background: dayObj ? '#fff' : '#f8fafc',
-                      boxShadow: dayObj ? '0 10px 25px -5px rgba(0,0,0,0.05)' : 'none'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{day}</span>
+                    <div key={day} className={`availability-row-seamless ${dayObj ? 'active' : ''}`} style={{ padding: '10px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <span className="day-label-premium" style={{ width: '100px', fontSize: '0.9rem' }}>{day}</span>
                         <button 
                           type="button" 
                           onClick={() => toggleDay(day)}
-                          style={{ 
-                            padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer',
-                            background: dayObj ? '#dcfce7' : '#f1f5f9', color: dayObj ? '#166534' : '#64748b', border: 'none'
-                          }}
+                          className={`status-toggle-seamless ${dayObj ? 'status-toggle-on' : 'status-toggle-off'}`}
                         >
                           {dayObj ? 'ONLINE' : 'OFF'}
                         </button>
                       </div>
-                      {dayObj ? (
-                        <div className="slot-inputs-wrapper animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                              <Clock size={12} style={{ position: 'absolute', left: '10px', color: 'var(--primary)', opacity: 0.6 }} />
-                              <input 
-                                type="time" 
-                                value={dayObj.slots[0]?.startTime || '09:00'} 
-                                onChange={(e) => handleAvailabilityChange(day, 'startTime', e.target.value)}
-                                style={{ width: '100%', padding: '8px 8px 8px 30px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}
-                              />
+
+                      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {dayObj ? (
+                          <div className="time-range-seamless" style={{ padding: '4px 12px' }}>
+                            <input 
+                              type="time" 
+                              value={dayObj.slots[0]?.startTime || '09:00'} 
+                              onChange={(e) => handleAvailabilityChange(day, 'startTime', e.target.value)}
+                              className="time-input-premium"
+                            />
+                            <TrendingUp size={12} style={{ color: '#cbd5e1', transform: 'rotate(90deg)' }} />
+                            <input 
+                              type="time" 
+                              value={dayObj.slots[0]?.endTime || '17:00'} 
+                              onChange={(e) => handleAvailabilityChange(day, 'endTime', e.target.value)}
+                              className="time-input-premium"
+                            />
                           </div>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#94a3b8', padding: '0 4px' }}>TO</span>
-                          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                              <Clock size={12} style={{ position: 'absolute', left: '10px', color: 'var(--primary)', opacity: 0.6 }} />
-                              <input 
-                                type="time" 
-                                value={dayObj.slots[0]?.endTime || '17:00'} 
-                                onChange={(e) => handleAvailabilityChange(day, 'endTime', e.target.value)}
-                                style={{ width: '100%', padding: '8px 8px 8px 30px', borderRadius: '12px', border: '1.5px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}
-                              />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="off-state-wrapper animate-fade-in" style={{ padding: '8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                           <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #f1f5f9' }}>
-                              <XCircle size={18} color="#94a3b8" />
-                           </div>
-                           <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>Rest & Recharge</p>
-                              <p style={{ margin: 0, fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>No appointments scheduled</p>
-                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>NOT SCHEDULED</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })}

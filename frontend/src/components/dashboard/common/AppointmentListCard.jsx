@@ -20,6 +20,18 @@ const AppointmentListCard = ({
   const hospital = appointment.hospitalId?.name || 'Bharat Health Facility';
   const location = appointment.hospitalId?.address || appointment.hospitalState || 'India';
 
+  // Logic to determine if appointment has passed
+  const isPassed = (() => {
+    if (!appointment.date || !appointment.endTime) return false;
+    // Normalize date to local date string YYYY-MM-DD
+    const apptDateStr = new Date(appointment.date).toISOString().split('T')[0];
+    const [hour, minute] = appointment.endTime.split(':').map(Number);
+    const apptEndTime = new Date(`${apptDateStr}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`);
+    return apptEndTime < new Date();
+  })();
+
+  const effectiveStatus = (appointment.status === 'confirmed' && isPassed) ? 'not-visited' : appointment.status;
+
   return (
     <div className={`appointment-list-card ${appointment.status}`}>
       <div className="appt-main-info">
@@ -69,12 +81,12 @@ const AppointmentListCard = ({
       </div>
 
       <div className="appt-actions-area">
-        <StatusBadge status={appointment.status} />
+        <StatusBadge status={effectiveStatus === 'not-visited' ? 'Not Visited' : effectiveStatus} />
         
         <div className="btn-group-sm">
           {/* Manual confirmation UI purged; validation now strictly enforces hourly slots auto-confirm. */}
 
-          {isProvider && appointment.status === 'confirmed' && (
+          {isProvider && appointment.status === 'confirmed' && !isPassed && (
             <button 
               className="btn btn-sm btn-primary" 
               onClick={() => onAction(appointment._id, 'completed')}
@@ -84,7 +96,7 @@ const AppointmentListCard = ({
             </button>
           )}
 
-          {!isProvider && appointment.status === 'confirmed' && (
+          {!isProvider && appointment.status === 'confirmed' && !isPassed && (
             <button 
               className="btn btn-sm btn-outline-primary" 
               onClick={() => onDownload(appointment)}
@@ -104,7 +116,7 @@ const AppointmentListCard = ({
             </button>
           )}
           
-          {(appointment.status === 'pending' || appointment.status === 'confirmed') && !isProvider && (
+          {(appointment.status === 'pending' || appointment.status === 'confirmed') && !isProvider && !isPassed && (
              <button 
               className="btn btn-sm btn-outline-danger" 
               onClick={() => onAction(appointment._id, 'cancelled')}

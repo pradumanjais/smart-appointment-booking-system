@@ -406,7 +406,12 @@ const ProviderDashboard = ({ handleLogout }) => {
                   </div>
                   <div className="meta-info hide-mobile">
                     <span className="badge-premium" style={{ border: '1.5px solid var(--primary-light)', color: 'var(--primary)', padding: '8px 16px', borderRadius: '14px', fontSize: '0.8rem', fontWeight: 800 }}>
-                      {appointments.filter(a => a.status === 'confirmed').length} Active Visits
+                      {appointments.filter(a => {
+                        if (a.status !== 'confirmed') return false;
+                        const apptDate = new Date(a.date).toISOString().split('T')[0];
+                        const apptEndTime = new Date(`${apptDate}T${a.endTime}`);
+                        return apptEndTime > new Date();
+                      }).length} Active Visits
                     </span>
                   </div>
                 </div>

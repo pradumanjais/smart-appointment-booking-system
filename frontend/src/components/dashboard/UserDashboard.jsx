@@ -585,7 +585,12 @@ const UserDashboard = ({ handleLogout }) => {
           <div className="stats-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '40px' }}>
             <StatCard 
               label="Booked Appointments" 
-              value={myAppointments.filter(a => a.status === 'confirmed').length}
+              value={myAppointments.filter(a => {
+                if (a.status !== 'confirmed') return false;
+                const apptDate = new Date(a.date).toISOString().split('T')[0];
+                const apptEndTime = new Date(`${apptDate}T${a.endTime}`);
+                return apptEndTime > new Date();
+              }).length}
               icon={Calendar}
               variant="indigo"
             />
@@ -630,7 +635,12 @@ const UserDashboard = ({ handleLogout }) => {
               <h3 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '24px', letterSpacing: '-0.5px' }}>Next Up</h3>
               {(() => {
                 const upcoming = [...myAppointments]
-                  .filter(a => a.status === 'confirmed')
+                  .filter(a => {
+                    if (a.status !== 'confirmed') return false;
+                    const apptDate = new Date(a.date).toISOString().split('T')[0];
+                    const apptEndTime = new Date(`${apptDate}T${a.endTime}`);
+                    return apptEndTime > new Date();
+                  })
                   .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
                 
                 if (upcoming) {

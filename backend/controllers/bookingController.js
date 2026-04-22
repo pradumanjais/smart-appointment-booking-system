@@ -120,6 +120,17 @@ const bookAppointment = async (req, res) => {
 // @access  Private
 const getMyAppointments = async (req, res) => {
   try {
+    // Auto-update any confirmed appointments that have passed
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const startOfToday = new Date(todayStr);
+
+    // Bulk update appointments from previous days
+    await Appointment.updateMany(
+      { userId: req.user.id, status: 'confirmed', date: { $lt: startOfToday } },
+      { status: 'not-visited' }
+    );
+
     const appointments = await Appointment.find({ userId: req.user.id })
       .populate({
         path: 'providerId',
@@ -140,6 +151,16 @@ const getProviderAppointments = async (req, res) => {
   try {
     const provider = await Provider.findOne({ userId: req.user.id });
     if (!provider) return res.status(404).json({ message: 'Provider profile not found' });
+
+    // Auto-update any confirmed appointments for this provider that have passed
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const startOfToday = new Date(todayStr);
+
+    await Appointment.updateMany(
+      { providerId: provider._id, status: 'confirmed', date: { $lt: startOfToday } },
+      { status: 'not-visited' }
+    );
 
     const appointments = await Appointment.find({ providerId: provider._id })
       .populate('userId', 'name email avatar');

@@ -8,6 +8,8 @@ const StatusBadge = ({ status }) => {
       case 'confirmed': return 'sb-confirmed';
       case 'completed': return 'sb-completed';
       case 'cancelled': return 'sb-cancelled';
+      case 'not-visited': 
+      case 'not visited': return 'sb-not-visited';
       default: return 'sb-pending';
     }
   };

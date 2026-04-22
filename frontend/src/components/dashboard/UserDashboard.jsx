@@ -1235,7 +1235,7 @@ const UserDashboard = ({ handleLogout }) => {
               />
             </div>
           ) : (
-            <div className="modern-profile-shell" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 380px) 1fr', gap: '32px', alignItems: 'start' }}>
+            <div className="modern-profile-shell" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '32px', alignItems: 'start', maxWidth: 'none', margin: '0' }}>
               
               {/* LEFT COLUMN: Patient Hero Sidebar */}
               <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: 'calc(var(--header-height) + 24px)', zIndex: 10, overflow: 'hidden' }}>

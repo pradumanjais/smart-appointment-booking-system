@@ -12,6 +12,7 @@ import DailyScheduleCalendar from './common/DailyScheduleCalendar';
 import { useToast } from '../../context/ToastContext';
 import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Edit, Award, DollarSign, List, Grid, ChevronLeft, ChevronRight, Zap, Moon } from 'lucide-react';
 import ProviderSetupWizard from './ProviderSetupWizard';
+import VitalCard from './common/VitalCard';
 import { calculateAge } from '../../utils/dateUtils';
 
 const ProviderDashboard = ({ handleLogout }) => {
@@ -394,14 +395,16 @@ const ProviderDashboard = ({ handleLogout }) => {
                     <button 
                       className={`switch-btn-p ${viewMode === 'list' ? 'active' : ''}`}
                       onClick={() => setViewMode('list')}
+                      title="List View"
                     >
-                      <List size={16} />
+                      <List size={18} />
                     </button>
                     <button 
                       className={`switch-btn-p ${viewMode === 'calendar' ? 'active' : ''}`}
                       onClick={() => setViewMode('calendar')}
+                      title="Calendar View"
                     >
-                      <Grid size={16} />
+                      <Calendar size={18} />
                     </button>
                   </div>
                   <div className="meta-info hide-mobile">
@@ -499,76 +502,50 @@ const ProviderDashboard = ({ handleLogout }) => {
 }
 
       {currentTab === 'profile' && providerData && (
-        <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '32px', alignItems: 'start' }}>
-          {/* LEFT COLUMN: Premium Expert Hero */}
-          <div className="profile-hero-glass" style={{ padding: '40px', textAlign: 'center', position: 'sticky', top: '24px' }}>
-            <div className="avatar-glow-container">
+        <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '32px', alignItems: 'start' }}>
+          {/* LEFT COLUMN: Premium Expert Hero Sidebar */}
+          <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: 'calc(var(--header-height) + 24px)', zIndex: 10, overflow: 'hidden' }}>
+            <div className="avatar-glow-container" style={{ marginBottom: '12px' }}>
               <div className="avatar-glow-ring"></div>
               <img 
                 src={providerData.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
                 alt="Expert" 
                 className="profile-avatar-giant" 
+                style={{ width: '90px', height: '90px' }}
               />
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <div className={`status-badge-unified ${providerData.isVerified ? 'sb-confirmed' : 'sb-pending'}`} style={{ marginBottom: '12px', padding: '6px 16px', fontSize: '0.75rem' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <div className={`status-badge-unified ${providerData.isVerified ? 'sb-confirmed' : 'sb-pending'}`} style={{ marginBottom: '10px', padding: '5px 12px', fontSize: '0.65rem' }}>
                 {providerData.isVerified ? 'VERIFIED SPECIALIST' : 'VERIFICATION PENDING'}
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.5px' }}>
-                Dr. {providerData.userId?.name.split(' ')[0]} <span style={{ color: 'var(--primary)', opacity: 0.6 }}>{providerData.userId?.name.split(' ').slice(1).join(' ')}</span>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
+                Dr. {providerData.userId?.name}
               </h2>
-              <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: 600 }}>{providerData.userId?.email}</p>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, opacity: 0.8, margin: 0 }}>{providerData.userId?.email}</p>
             </div>
 
-            <div className="rating-shimmer mb-8">
+            <div className="rating-shimmer" style={{ marginBottom: '16px', padding: '6px 14px', fontSize: '0.75rem' }}>
               <div style={{ display: 'flex', gap: '2px' }}>
-                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} fill={i <= Math.floor(providerData.rating || 4.9) ? "currentColor" : "none"} />)}
+                {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill={i <= Math.floor(providerData.rating || 4.9) ? "#f59e0b" : "none"} color="#f59e0b" />)}
               </div>
-              <span>{providerData.rating || 4.9} EXPERT SCORE</span>
+              <span style={{ fontWeight: 800, marginLeft: '6px' }}>{providerData.rating || 4.9} EXPERT SCORE</span>
             </div>
 
-            <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
-              <div className="vital-card-premium">
-                <div className="vital-icon-box" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                  <Activity size={18} />
-                </div>
-                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Expertise</label>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.specialization || '—'}</span>
-              </div>
-              
-              <div className="vital-card-premium">
-                <div className="vital-icon-box" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-                  <Award size={18} />
-                </div>
-                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Experience</label>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.experience || 0}+ Years</span>
-              </div>
-
-              <div className="vital-card-premium">
-                <div className="vital-icon-box" style={{ background: '#fff7ed', color: '#ea580c' }}>
-                  <DollarSign size={18} />
-                </div>
-                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Consultation</label>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>₹{providerData.consultationFees?.inPerson || 0}</span>
-              </div>
-
-              <div className="vital-card-premium">
-                <div className="vital-icon-box" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
-                  <Clock size={18} />
-                </div>
-                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Capacity</label>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b' }}>{providerData.throughputCapacity || 1} Per Slot</span>
-              </div>
+            <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+              <VitalCard label="Expertise" value={providerData.specialization || '—'} icon={Activity} color="blue" />
+              <VitalCard label="Experience" value={`${providerData.experience || 0}+ Yrs`} icon={Award} color="green" />
+              <VitalCard label="Fee" value={`₹${providerData.consultationFees?.inPerson || 0}`} icon={DollarSign} color="orange" />
+              <VitalCard label="Capacity" value={`${providerData.throughputCapacity || 1}/Slot`} icon={Clock} color="purple" />
             </div>
 
             <Button 
               variant="primary" 
               className="w-full" 
               onClick={() => openWizard(1)}
-              style={{ borderRadius: '18px', padding: '16px', fontWeight: 800, boxShadow: '0 10px 20px rgba(var(--primary-rgb), 0.2)' }}
+              style={{ borderRadius: '14px', padding: '12px', fontWeight: 800, fontSize: '0.9rem' }}
             >
-              <Edit3 size={18} style={{ marginRight: '8px' }} /> Update Your Profile
+              <Edit3 size={16} style={{ marginRight: '6px' }} /> Update Profile
             </Button>
           </div>
 
@@ -576,66 +553,38 @@ const ProviderDashboard = ({ handleLogout }) => {
           <div className="profile-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
             {/* PROFESSIONAL BIO - PRIMARY HIGHLIGHT */}
-            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <Star size={20} color="#f59e0b" fill="#f59e0b" />
+            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <Star size={18} color="#f59e0b" fill="#f59e0b" />
                 </div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Professional Bio</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Professional Bio</h3>
               </div>
               
-              <div className="data-item-premium" style={{ alignItems: 'start', background: 'white', border: '1.5px solid #f1f5f9' }}>
+              <div className="data-item-premium" style={{ alignItems: 'start', background: 'white', border: '1.5px solid #f1f5f9', padding: '16px' }}>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '1.1rem', lineHeight: '1.8', color: '#334155', fontWeight: 500, fontStyle: providerData.bio ? 'normal' : 'italic' }}>
-                    {providerData.bio || 'Your professional biography provides patients with meaningful context about your practice. Click "Update Your Profile" to add one.'}
+                  <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.6', color: '#475569', fontWeight: 500, fontStyle: providerData.bio ? 'normal' : 'italic' }}>
+                    {providerData.bio || 'Your professional biography provides patients with meaningful context about your practice.'}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* PERSONAL IDENTITY */}
-            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <User size={20} color="var(--primary)" />
+            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <User size={18} color="var(--primary)" />
                 </div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Personal Identity</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Personal Identity</h3>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                <div className="data-item-premium">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                <div className="data-item-premium" style={{ padding: '10px 14px' }}>
                   <div className="data-icon-wrapper"><User size={18} /></div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Full Legal Name</label>
                     <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.name || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Mail size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Email Address</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.email || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Clock size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Age</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{calculateAge(providerData.userId?.dob) || providerData.userId?.age || '—'} Years</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Phone size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Mobile Number</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.phone || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Base State</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.state || '—'}</span>
                   </div>
                 </div>
                 <div className="data-item-premium">
@@ -653,53 +602,64 @@ const ProviderDashboard = ({ handleLogout }) => {
                   </div>
                 </div>
                 <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Clock size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Age</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{calculateAge(providerData.userId?.dob) || providerData.userId?.age || '—'} Years</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Mail size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Email Address</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.email || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Phone size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Mobile Number</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.phone || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium" style={{ gridColumn: 'span 2' }}>
                   <div className="data-icon-wrapper"><MapPin size={18} /></div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Full Residential PIN</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.pinCode || '—'}</span>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Residential Address</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                      {providerData.address ? `${providerData.address}, ` : ''}{providerData.state || '—'}{providerData.pinCode ? ` - ${providerData.pinCode}` : ''}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* WORKING LOCATION */}
-            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <MapPin size={20} color="#10b981" />
+            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <MapPin size={18} color="#10b981" />
                 </div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Working Location</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Working Location</h3>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="data-item-premium" style={{ background: 'linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1.5px solid #bae6fd' }}>
-                   <div className="data-icon-wrapper" style={{ background: 'white' }}><Activity size={20} /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="data-item-premium" style={{ background: 'linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1.5px solid #bae6fd', padding: '12px 16px' }}>
+                   <div className="data-icon-wrapper" style={{ background: 'white' }}><Activity size={18} /></div>
                    <div style={{ flex: 1 }}>
-                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#0369a1', textTransform: 'uppercase' }}>Clinical Institution</label>
-                     <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0c4a6e' }}>{providerData.clinicName || 'Universal Health Center'}</span>
+                     <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: '#0369a1', textTransform: 'uppercase' }}>Clinical Institution</label>
+                     <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0c4a6e' }}>{providerData.clinicName || 'Universal Health Center'}</span>
                    </div>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                   <div className="data-item-premium">
                     <div className="data-icon-wrapper"><MapPin size={18} /></div>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic Address</label>
-                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicAddress || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="data-item-premium">
-                    <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic State</label>
-                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicState || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="data-item-premium">
-                    <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic PIN Code</label>
-                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.clinicPinCode || '—'}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+                        {providerData.clinicAddress || '—'}{providerData.clinicState ? `, ${providerData.clinicState}` : ''}{providerData.clinicPinCode ? ` - ${providerData.clinicPinCode}` : ''}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -708,12 +668,12 @@ const ProviderDashboard = ({ handleLogout }) => {
             </div>
 
             {/* MEDICAL CREDENTIALS */}
-            <div className="glass-stat" style={{ padding: '32px', borderRadius: '28px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <ShieldCheck size={20} color="#7c3aed" />
+            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                  <ShieldCheck size={18} color="#7c3aed" />
                 </div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Medical Credentials</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Medical Credentials</h3>
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
@@ -753,8 +713,8 @@ const ProviderDashboard = ({ handleLogout }) => {
 
       {currentTab === 'availability' && providerData && (
         <div className="modern-profile-shell animate-slide-up" style={{ display: 'block' }}>
-           <div className="info-pack-card" style={{ padding: '40px' }}>
-              <div className="pack-header" style={{ marginBottom: '32px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+           <div className="info-pack-card" style={{ padding: '24px' }}>
+              <div className="pack-header" style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Clock size={28} color="var(--primary)" />
                   <h2 style={{ fontSize: '1.8rem', fontWeight: 900 }}>Schedule & Availability</h2>

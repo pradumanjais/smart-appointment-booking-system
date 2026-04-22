@@ -412,6 +412,32 @@ const UserDashboard = ({ handleLogout }) => {
       };
       const { data } = await api.put('/auth/profile', submitData);
       setUserData(data);
+      // Re-sync profileForm from saved data
+      setProfileForm({
+        name: data.name || '',
+        phone: data.phone || '',
+        age: data.age || '',
+        bloodGroup: data.bloodGroup || '',
+        avatar: data.avatar || '',
+        state: data.state || '',
+        city: data.city || '',
+        pinCode: data.pinCode || '',
+        address: data.address || '',
+        fathersName: data.fathersName || '',
+        mothersName: data.mothersName || '',
+        dob: data.dob?.split('T')[0] || '',
+        gender: data.gender || '',
+        allergies: data.allergies?.join(', ') || '',
+        conditions: data.conditions?.join(', ') || '',
+        medications: data.medications?.join(', ') || '',
+        pastSurgeries: data.pastSurgeries?.join(', ') || '',
+        emergencyName: data.emergencyContact?.name || '',
+        emergencyPhone: data.emergencyContact?.phone || '',
+        username: data.username || '',
+        languagePreference: data.languagePreference || 'English',
+        notificationPreferences: data.notificationPreferences || { sms: true, email: true, app: true },
+        privacySettings: data.privacySettings || { dataShared: false, profileVisible: true }
+      });
       setEditMode(false);
       showToast('Profile updated successfully!', 'success');
     } catch (err) {
@@ -1265,7 +1291,7 @@ const UserDashboard = ({ handleLogout }) => {
               <div className="profile-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 
                 {/* PERSONAL IDENTITY */}
-                <ProfileInfoPack title="Personal Identity" icon={User} color="var(--primary)">
+                <ProfileInfoPack title="Personal Identity" icon={User} color="var(--primary)" columns={2}>
                   <ProfileDataItem 
                     label="Full Name" value={profileForm.name} editMode={editMode} 
                     onChange={e => setProfileForm({...profileForm, name: e.target.value})} icon={User} 
@@ -1286,10 +1312,14 @@ const UserDashboard = ({ handleLogout }) => {
                     label="Gender" value={profileForm.gender} type="select" options={['Male', 'Female', 'Other']} editMode={editMode} 
                     onChange={e => setProfileForm({...profileForm, gender: e.target.value})} icon={User} 
                   />
+                  <ProfileDataItem 
+                    label="Username" value={profileForm.username} editMode={editMode} 
+                    onChange={e => setProfileForm({...profileForm, username: e.target.value})} icon={Shield} 
+                  />
                 </ProfileInfoPack>
 
                 {/* CONTACT & RESIDENCY */}
-                <ProfileInfoPack title="Contact & Residency" icon={Phone} color="#10b981">
+                <ProfileInfoPack title="Contact & Residency" icon={Phone} color="#10b981" columns={2}>
                   <ProfileDataItem 
                     label="Mobile Number" value={profileForm.phone} editMode={editMode} 
                     onChange={e => setProfileForm({...profileForm, phone: e.target.value})} icon={Phone} 
@@ -1297,50 +1327,63 @@ const UserDashboard = ({ handleLogout }) => {
                   <ProfileDataItem 
                     label="Email Address" value={userData.email} editMode={false} icon={Mail} 
                   />
-                  <ProfileDataItem 
-                    label="Full Address" value={profileForm.address} editMode={editMode} 
-                    onChange={e => setProfileForm({...profileForm, address: e.target.value})} icon={MapPin} colSpan={2} 
-                  />
-                  <ProfileDataItem 
-                    label="City" value={profileForm.city} editMode={editMode} 
-                    onChange={e => setProfileForm({...profileForm, city: e.target.value})} icon={MapPin} 
-                  />
-                  <ProfileDataItem 
-                    label="State" value={profileForm.state} editMode={editMode} 
-                    onChange={e => setProfileForm({...profileForm, state: e.target.value})} icon={MapPin} 
-                  />
-                  <ProfileDataItem 
-                    label="PIN Code" value={profileForm.pinCode} editMode={editMode} 
-                    onChange={e => setProfileForm({...profileForm, pinCode: e.target.value})} icon={MapPin} 
-                  />
+                  
+                  {!editMode ? (
+                    <ProfileDataItem 
+                      label="Residential Address" 
+                      value={`${profileForm.address}${profileForm.city ? `, ${profileForm.city}` : ''}${profileForm.state ? `, ${profileForm.state}` : ''}${profileForm.pinCode ? ` - ${profileForm.pinCode}` : ''}`} 
+                      editMode={false} 
+                      icon={MapPin} 
+                      colSpan={2} 
+                    />
+                  ) : (
+                    <>
+                      <ProfileDataItem 
+                        label="Full Address" value={profileForm.address} editMode={editMode} 
+                        onChange={e => setProfileForm({...profileForm, address: e.target.value})} icon={MapPin} colSpan={2} 
+                      />
+                      <ProfileDataItem 
+                        label="City" value={profileForm.city} editMode={editMode} 
+                        onChange={e => setProfileForm({...profileForm, city: e.target.value})} icon={MapPin} 
+                      />
+                      <ProfileDataItem 
+                        label="State" value={profileForm.state} editMode={editMode} 
+                        onChange={e => setProfileForm({...profileForm, state: e.target.value})} icon={MapPin} 
+                      />
+                      <ProfileDataItem 
+                        label="PIN Code" value={profileForm.pinCode} editMode={editMode} 
+                        onChange={e => setProfileForm({...profileForm, pinCode: e.target.value})} icon={MapPin} 
+                      />
+                    </>
+                  )}
                 </ProfileInfoPack>
 
                 {/* MEDICAL BACKGROUND */}
-                <ProfileInfoPack title="Medical Background" icon={Activity} color="#ef4444">
+                <ProfileInfoPack title="Medical Background" icon={Activity} color="#ef4444" columns={2}>
                   <ProfileDataItem 
                     label="Blood Group" value={profileForm.bloodGroup} type="select" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} 
                     editMode={editMode} onChange={e => setProfileForm({...profileForm, bloodGroup: e.target.value})} icon={Droplet} 
                   />
                   <ProfileDataItem 
                     label="Known Allergies" value={profileForm.allergies} placeholder="e.g. Peanuts, Penicillin" 
-                    editMode={editMode} onChange={e => setProfileForm({...profileForm, allergies: e.target.value})} icon={Activity} colSpan={2} 
+                    editMode={editMode} onChange={e => setProfileForm({...profileForm, allergies: e.target.value})} icon={Activity} 
                   />
                   <ProfileDataItem 
                     label="Chronic Conditions" value={profileForm.conditions} placeholder="e.g. Diabetes, Hypertension" 
-                    editMode={editMode} onChange={e => setProfileForm({...profileForm, conditions: e.target.value})} icon={Activity} colSpan={2} 
+                    editMode={editMode} onChange={e => setProfileForm({...profileForm, conditions: e.target.value})} icon={Activity} 
                   />
                   <ProfileDataItem 
                     label="Current Medications" value={profileForm.medications} placeholder="List medications" type="textarea" 
-                    editMode={editMode} onChange={e => setProfileForm({...profileForm, medications: e.target.value})} icon={Activity} colSpan={2} 
+                    editMode={editMode} onChange={e => setProfileForm({...profileForm, medications: e.target.value})} icon={Activity} 
                   />
                   <ProfileDataItem 
                     label="Past Medical History" value={profileForm.pastSurgeries} placeholder="Surgical history" type="textarea" 
-                    editMode={editMode} onChange={e => setProfileForm({...profileForm, pastSurgeries: e.target.value})} icon={Activity} colSpan={2} 
+                    editMode={editMode} onChange={e => setProfileForm({...profileForm, pastSurgeries: e.target.value})} icon={Activity} 
                   />
                 </ProfileInfoPack>
 
                 {/* EMERGENCY CONTACT & ACCOUNT */}
-                <ProfileInfoPack title="Emergency & Account" icon={Shield} color="#7c3aed">
+                <ProfileInfoPack title="Emergency & Account" icon={Shield} color="#7c3aed" columns={2}>
                   <ProfileDataItem 
                     label="Emergency Name" value={profileForm.emergencyName} editMode={editMode} 
                     onChange={e => setProfileForm({...profileForm, emergencyName: e.target.value})} icon={User} 
@@ -1348,10 +1391,6 @@ const UserDashboard = ({ handleLogout }) => {
                   <ProfileDataItem 
                     label="Emergency Phone" value={profileForm.emergencyPhone} editMode={editMode} 
                     onChange={e => setProfileForm({...profileForm, emergencyPhone: e.target.value})} icon={Phone} 
-                  />
-                  <ProfileDataItem 
-                    label="Username" value={profileForm.username} editMode={editMode} 
-                    onChange={e => setProfileForm({...profileForm, username: e.target.value})} icon={Shield} 
                   />
                   <ProfileDataItem 
                     label="Preferred Language" value={profileForm.languagePreference} type="select" options={['English', 'Hindi', 'Spanish', 'French']} 

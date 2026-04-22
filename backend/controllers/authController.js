@@ -137,7 +137,7 @@ const getMe = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { 
-      name, phone, age, bloodGroup, avatar, state, address,
+      name, phone, age, bloodGroup, avatar, state, address, city,
       gender, dob, govtId,
       allergies, conditions, medications, pastSurgeries,
       emergencyContact, insurance,
@@ -158,17 +158,13 @@ const updateProfile = async (req, res) => {
     if (avatar) user.avatar = avatar;
     if (state) user.state = state;
     if (address) user.address = address;
+    if (city) user.city = city;
     if (gender) user.gender = gender;
     if (dob) user.dob = dob;
     if (govtId) user.govtId = govtId;
-    
-    // Only update residential/identity fields for non-providers
-    if (user.role !== 'provider') {
-      if (state) user.state = state;
-      if (address) user.address = address;
-      if (pinCode) user.pinCode = pinCode;
-      // fathersName/mothersName removed from User schema
-    }
+    if (fathersName) user.fathersName = fathersName;
+    if (mothersName) user.mothersName = mothersName;
+    if (pinCode) user.pinCode = pinCode;
 
     // Update medical arrays
     if (allergies) user.allergies = allergies;

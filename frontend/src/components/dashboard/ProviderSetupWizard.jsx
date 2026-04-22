@@ -3,7 +3,8 @@ import {
   User, ShieldCheck, Briefcase, Award, 
   MapPin, Clock, DollarSign, Activity, 
   ChevronRight, ChevronLeft, CheckCircle2,
-  Phone, Mail, Globe, Lock, Shield, XCircle
+  Phone, Mail, Globe, Lock, Shield, XCircle,
+  Zap, TrendingUp
 } from 'lucide-react';
 import InputField from '../common/InputField';
 import Button from '../common/Button';

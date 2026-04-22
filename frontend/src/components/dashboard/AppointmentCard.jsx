@@ -98,9 +98,9 @@ const AppointmentCard = ({ appointment, cardRef, hideFooter = false, footerActio
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
                <Activity size={18} color="var(--primary)" style={{ opacity: 0.6 }} />
-              <div style={{ marginLeft: '12px' }}>
-                <p style={{ margin: 0, fontWeight: 800, fontSize: '0.6rem', color: '#94a3b8' }}>VERIFIED VISIT PASS</p>
-                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>ID: #{appointment._id?.toString().slice(-6).toUpperCase() || 'NEW'}</p>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <p style={{ margin: 0, fontWeight: 800, fontSize: '0.5rem', color: '#10b981' }}>VERIFIED VISIT PASS</p>
+                <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 800 }}>#{appointment._id?.toString().slice(-6).toUpperCase() || 'NEW'}</p>
               </div>
             </div>
             {footerAction}

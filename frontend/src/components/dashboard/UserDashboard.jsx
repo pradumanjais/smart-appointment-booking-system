@@ -1268,7 +1268,12 @@ const UserDashboard = ({ handleLogout }) => {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <div className="expert-badge-shimmer" style={{ padding: '5px 12px', fontSize: '0.65rem' }}>
+                  <div className="expert-badge-shimmer" style={{ 
+                    padding: '5px 12px', 
+                    fontSize: '0.65rem',
+                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+                  }}>
                     <ShieldCheck size={12} /> VERIFIED PATIENT
                   </div>
                   <h2 className="text-gradient-name" style={{ fontSize: '1.5rem', fontWeight: 900, margin: '8px 0 2px', letterSpacing: '-0.5px' }}>

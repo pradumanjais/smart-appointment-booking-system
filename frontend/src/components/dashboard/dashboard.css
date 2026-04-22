@@ -220,6 +220,30 @@
   z-index: 2;
 }
 
+.avatar-edit-glare {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--primary);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid white;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.avatar-edit-glare:hover {
+  transform: scale(1.1);
+  background: #3b82f6;
+}
+
 .rating-shimmer {
   background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 50%, #fffbeb 100%);
   background-size: 200% 100%;

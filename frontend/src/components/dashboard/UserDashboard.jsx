@@ -1206,7 +1206,7 @@ const UserDashboard = ({ handleLogout }) => {
       )}
 
       {currentTab === 'profile' && userData && (
-        <div className="profile-container animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="profile-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           {showProfileWizard ? (
             <div className="profile-wizard-viewport">
               <button 
@@ -1227,7 +1227,7 @@ const UserDashboard = ({ handleLogout }) => {
             <div className="modern-profile-shell" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 380px) 1fr', gap: '32px', alignItems: 'start' }}>
               
               {/* LEFT COLUMN: Patient Hero Sidebar */}
-              <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: '24px' }}>
+              <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: 'calc(var(--header-height) + 24px)', zIndex: 10, overflow: 'hidden' }}>
                 <div className="avatar-glow-container" style={{ marginBottom: '12px' }}>
                   <div className="avatar-glow-ring"></div>
                   <img 
@@ -1261,7 +1261,7 @@ const UserDashboard = ({ handleLogout }) => {
                     <ShieldCheck size={12} /> VERIFIED PATIENT
                   </div>
                   <h2 className="text-gradient-name" style={{ fontSize: '1.5rem', fontWeight: 900, margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
-                    {userData.name}
+                    {profileForm.name}
                   </h2>
                   <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, opacity: 0.8, margin: 0 }}>{userData.email}</p>
                   <div className="patient-id-badge" style={{ marginTop: '10px', padding: '5px 14px', fontSize: '0.8rem' }}>
@@ -1270,15 +1270,15 @@ const UserDashboard = ({ handleLogout }) => {
                 </div>
 
                 <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-                  <VitalCard label="Blood Group" value={userData.bloodGroup || '—'} icon={Droplet} color="red" />
-                  <VitalCard label="Age" value={calculateAge(userData.dob) || userData.age || '—'} icon={Calendar} color="blue" />
-                  <VitalCard label="Gender" value={userData.gender || '—'} icon={User} color="purple" />
-                  <VitalCard label="Language" value={userData.languagePreference || 'English'} icon={MessageSquare} color="green" />
+                  <VitalCard label="Blood Group" value={profileForm.bloodGroup || '—'} icon={Droplet} color="red" />
+                  <VitalCard label="Age" value={profileForm.age || '—'} icon={Calendar} color="blue" />
+                  <VitalCard label="Gender" value={profileForm.gender || '—'} icon={User} color="purple" />
+                  <VitalCard label="Language" value={profileForm.languagePreference || 'English'} icon={MessageSquare} color="green" />
                 </div>
 
                 {!editMode ? (
                   <Button variant="primary" className="w-full" onClick={() => setEditMode(true)} style={{ borderRadius: '14px', padding: '10px', fontWeight: 800, fontSize: '0.9rem' }}>
-                    <Edit3 size={16} style={{ marginRight: '6px' }} /> Edit Full Profile
+                    <Edit3 size={16} style={{ marginRight: '6px' }} /> Update Profile
                   </Button>
                 ) : (
                   <div style={{ display: 'flex', gap: '8px' }}>

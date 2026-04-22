@@ -10,6 +10,18 @@ import InputField from '../common/InputField';
 import Button from '../common/Button';
 import api from '../../api';
 import { useToast } from '../../context/ToastContext';
+import { calculateAge } from '../../utils/dateUtils';
+
+const safeFormatDate = (dateVal) => {
+  if (!dateVal) return '';
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().split('T')[0];
+  } catch (e) {
+    return '';
+  }
+};
 
 const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1, isSingleStep = false, onlyField = null }) => {
   const [step, setStep] = useState(startStep);
@@ -33,9 +45,9 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
     mothersName: existingProfile?.mothersName || '',
     phone: user?.phone || existingProfile?.userId?.phone || '',
     email: user?.email || existingProfile?.userId?.email || '',
-    address: user?.address || '', // Residential
-    state: user?.state || existingProfile?.location || '',
-    pinCode: user?.pinCode || '',
+    address: user?.address || existingProfile?.address || '', // Residential
+    state: user?.state || existingProfile?.state || existingProfile?.location || '',
+    pinCode: user?.pinCode || existingProfile?.pinCode || '',
     clinicName: existingProfile?.clinicName || '',
     clinicAddress: existingProfile?.clinicAddress || '',
     clinicState: existingProfile?.clinicState || '',
@@ -53,6 +65,8 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
     bio: existingProfile?.bio || '',
     experience: existingProfile?.experience || '',
     awards: existingProfile?.awards?.join(', ') || '',
+    dob: safeFormatDate(user?.dob) || safeFormatDate(existingProfile?.userId?.dob) || '',
+    consultationFeeInPerson: existingProfile?.consultationFees?.inPerson || 500,
 
     // Step 5: Availability
     slotDuration: existingProfile?.slotDuration || 15,
@@ -65,6 +79,33 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
       { day: 'Friday', slots: [{ startTime: '09:00', endTime: '17:00' }] },
     ]
   });
+
+  // Sync formData with props when they arrive or change
+  useEffect(() => {
+    if (user || existingProfile) {
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name || user?.name || existingProfile?.userId?.name || '',
+        fathersName: prev.fathersName || existingProfile?.fathersName || '',
+        mothersName: prev.mothersName || existingProfile?.mothersName || '',
+        phone: prev.phone || user?.phone || existingProfile?.userId?.phone || '',
+        email: prev.email || user?.email || existingProfile?.userId?.email || '',
+        address: prev.address || user?.address || existingProfile?.address || '',
+        state: prev.state || user?.state || existingProfile?.state || existingProfile?.location || '',
+        pinCode: prev.pinCode || user?.pinCode || existingProfile?.pinCode || '',
+        dob: prev.dob || safeFormatDate(user?.dob) || safeFormatDate(existingProfile?.userId?.dob) || '',
+        consultationFeeInPerson: prev.consultationFeeInPerson || existingProfile?.consultationFees?.inPerson || 500,
+        clinicName: prev.clinicName || existingProfile?.clinicName || '',
+        clinicAddress: prev.clinicAddress || existingProfile?.clinicAddress || '',
+        clinicState: prev.clinicState || existingProfile?.clinicState || '',
+        clinicPinCode: prev.clinicPinCode || existingProfile?.clinicPinCode || '',
+        registrationNumber: prev.registrationNumber || existingProfile?.registrationNumber || '',
+        specialization: prev.specialization || existingProfile?.specialization || '',
+        experience: prev.experience || existingProfile?.experience || 0,
+        bio: prev.bio || existingProfile?.bio || '',
+      }));
+    }
+  }, [user, existingProfile]);
 
   const handleAvailabilityChange = (day, field, value) => {
     setFormData(prev => ({
@@ -100,10 +141,10 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
     if (step === 1) {
       return formData.name && formData.fathersName && formData.mothersName && 
              formData.phone && formData.email && formData.address && 
-             formData.state && formData.pinCode;
+             formData.state && formData.pinCode && formData.dob;
     }
     if (step === 2) {
-      return formData.clinicName && formData.clinicAddress && formData.clinicState && formData.clinicPinCode;
+      return formData.clinicName && formData.clinicAddress && formData.clinicState && formData.clinicPinCode && formData.consultationFeeInPerson;
     }
     if (step === 3) {
       return formData.registrationNumber && formData.medicalCouncil && 
@@ -152,7 +193,16 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
         visibility: 'public'
       };
 
-      // 1. Create/Update Provider profile (Stores practice AND personal identity)
+      // 1. Update User core details first (including DOB and calculated age)
+      await api.put('/auth/profile', {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        dob: formData.dob,
+        age: calculateAge(formData.dob)
+      });
+
+      // 2. Create/Update Provider profile (Stores practice AND personal identity)
       const { data } = await api.post('/providers/profile', {
         ...payload,
         fathersName: formData.fathersName,
@@ -160,14 +210,11 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
         address: formData.address, // Residential
         state: formData.state,     // Residential
         pinCode: formData.pinCode,  // Residential
-        throughputCapacity: Number(formData.throughputCapacity)
-      });
-      
-      // 2. Update User core details only (keeping account info in User schema)
-      await api.put('/auth/profile', {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email
+        throughputCapacity: Number(formData.throughputCapacity),
+        consultationFees: {
+          inPerson: Number(formData.consultationFeeInPerson),
+          online: existingProfile?.consultationFees?.online || 400
+        }
       });
       
       showToast('Practice profile is now live!', 'success');
@@ -254,6 +301,7 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
                 <InputField label="Father's Name" name="fathersName" value={formData.fathersName} onChange={handleChange} required />
                 <InputField label="Mother's Name" name="mothersName" value={formData.mothersName} onChange={handleChange} required />
                 <InputField label="Mobile Number" name="phone" value={formData.phone} onChange={handleChange} required />
+                <InputField label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
                 
                 <div style={{ gridColumn: 'span 2' }}>
                   <InputField label="Residential Address" name="address" value={formData.address} onChange={handleChange} required />
@@ -295,6 +343,7 @@ const ProviderSetupWizard = ({ user, existingProfile, onComplete, startStep = 1,
                     </select>
                 </div>
                 <InputField label="PIN Code" name="clinicPinCode" placeholder="6-digit PIN" value={formData.clinicPinCode} onChange={handleChange} required />
+                <InputField label="Consultation Fee (₹)" name="consultationFeeInPerson" type="number" placeholder="e.g. 500" value={formData.consultationFeeInPerson} onChange={handleChange} required />
             </div>
           </div>
         )}

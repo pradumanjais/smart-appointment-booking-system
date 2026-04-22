@@ -12,6 +12,7 @@ import DailyScheduleCalendar from './common/DailyScheduleCalendar';
 import { useToast } from '../../context/ToastContext';
 import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Edit, Award, DollarSign, List, Grid, ChevronLeft, ChevronRight, Zap, Moon } from 'lucide-react';
 import ProviderSetupWizard from './ProviderSetupWizard';
+import { calculateAge } from '../../utils/dateUtils';
 
 const ProviderDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
@@ -19,6 +20,7 @@ const ProviderDashboard = ({ handleLogout }) => {
   const [viewMode, setViewMode] = useState('list');
   const [appointments, setAppointments] = useState([]);
   const [providerData, setProviderData] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [wizardStartStep, setWizardStartStep] = useState(1);
@@ -149,20 +151,26 @@ const ProviderDashboard = ({ handleLogout }) => {
         console.error('Error fetching appointments:', err);
       }
 
-      // Fetch Profile Data
+      // Fetch Profile Data & User identity
       try {
-        const { data } = await api.get('/providers/profile');
-        setProviderData(data);
-        // If profile is very basic (only required fields from model.create during registration), show wizard
-        if (!data.registrationNumber || !data.clinicName) {
+        const [providerRes, userRes] = await Promise.all([
+          api.get('/providers/profile'),
+          api.get('/auth/me')
+        ]);
+        
+        setProviderData(providerRes.data);
+        setUserData(userRes.data);
+
+        // If profile is very basic, show wizard
+        if (!providerRes.data.registrationNumber || !providerRes.data.clinicName) {
            setShowSetupWizard(true);
         }
       } catch (err) {
         if (err.response?.status === 404) {
-          console.warn('Provider professional profile not configured yet. Loading base user data...');
           setShowSetupWizard(true);
           try {
             const userRes = await api.get('/auth/me');
+            setUserData(userRes.data);
             setProviderData({
               userId: userRes.data,
               hospitalId: null,
@@ -220,6 +228,9 @@ const ProviderDashboard = ({ handleLogout }) => {
 
   const handleSaveProfile = async (updatedData) => {
       setProviderData(updatedData);
+      if (updatedData.userId) {
+        setUserData(updatedData.userId);
+      }
       setShowSetupWizard(false);
       setWizardStartStep(1); // Reset for next time
   };
@@ -326,7 +337,8 @@ const ProviderDashboard = ({ handleLogout }) => {
                 <ChevronLeft size={20} /> Back to dashboard
             </button>
             <ProviderSetupWizard 
-                user={providerData?.userId} 
+                key={userData?._id ? `wizard-${userData._id}-${!!userData.dob}` : 'wizard-new'}
+                user={userData} 
                 existingProfile={providerData} 
                 onComplete={handleSaveProfile} 
                 startStep={wizardStartStep}
@@ -598,6 +610,13 @@ const ProviderDashboard = ({ handleLogout }) => {
                   <div>
                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Email Address</label>
                     <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.email || '—'}</span>
+                  </div>
+                </div>
+                <div className="data-item-premium">
+                  <div className="data-icon-wrapper"><Clock size={18} /></div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Age</label>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{calculateAge(providerData.userId?.dob) || providerData.userId?.age || '—'} Years</span>
                   </div>
                 </div>
                 <div className="data-item-premium">

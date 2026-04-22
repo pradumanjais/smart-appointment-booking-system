@@ -210,7 +210,7 @@ const updateProviderProfile = async (req, res) => {
         { userId: req.user.id },
         profileData,
         { returnDocument: 'after', runValidators: true }
-      ).populate('userId', 'name email avatar phone address state pinCode fathersName mothersName role');
+      ).populate('userId', 'name email avatar phone address state pinCode fathersName mothersName role dob');
     } else {
       // Create
       provider = await Provider.create({
@@ -218,7 +218,7 @@ const updateProviderProfile = async (req, res) => {
         ...profileData
       });
       // Populate the newly created document
-      provider = await Provider.findById(provider._id).populate('userId', 'name email avatar phone address state pinCode fathersName mothersName role');
+      provider = await Provider.findById(provider._id).populate('userId', 'name email avatar phone address state pinCode fathersName mothersName role dob');
     }
 
     res.json(provider);
@@ -233,7 +233,7 @@ const updateProviderProfile = async (req, res) => {
 const getProviderMe = async (req, res) => {
   try {
     const provider = await Provider.findOne({ userId: req.user.id })
-      .populate('userId', 'name email avatar phone age bloodGroup role address state pinCode fathersName mothersName')
+      .populate('userId', 'name email avatar phone age bloodGroup role address state pinCode fathersName mothersName dob')
       .populate('hospitalId', 'name state address');
 
     if (!provider) {

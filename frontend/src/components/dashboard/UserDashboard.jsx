@@ -18,6 +18,7 @@ import ActionCard from './common/ActionCard';
 import VitalCard from './common/VitalCard';
 import ProfileInfoPack from './common/ProfileInfoPack';
 import ProfileDataItem from './common/ProfileDataItem';
+import { calculateAge } from '../../utils/dateUtils';
 
 const UserDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
@@ -188,6 +189,16 @@ const UserDashboard = ({ handleLogout }) => {
     };
     fetchData();
   }, []);
+
+  // Auto-calculate age when DOB changes
+  useEffect(() => {
+    if (profileForm.dob) {
+      const calculatedAge = calculateAge(profileForm.dob);
+      if (calculatedAge !== profileForm.age) {
+        setProfileForm(prev => ({ ...prev, age: calculatedAge }));
+      }
+    }
+  }, [profileForm.dob]);
 
   const refreshAppointments = async () => {
     try {
@@ -1233,7 +1244,7 @@ const UserDashboard = ({ handleLogout }) => {
 
                 <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
                   <VitalCard label="Blood Group" value={userData.bloodGroup || '—'} icon={Droplet} color="red" />
-                  <VitalCard label="Age" value={userData.age ? `${userData.age} Yrs` : '—'} icon={Calendar} color="blue" />
+                  <VitalCard label="Age" value={calculateAge(userData.dob) || userData.age || '—'} icon={Calendar} color="blue" />
                   <VitalCard label="Gender" value={userData.gender || '—'} icon={User} color="purple" />
                   <VitalCard label="Language" value={userData.languagePreference || 'English'} icon={MessageSquare} color="green" />
                 </div>

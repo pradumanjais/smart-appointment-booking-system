@@ -865,11 +865,11 @@
 
 .health-pass-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   background: white;
-  border-radius: 24px;
+  border-radius: 16px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: visible; /* To allow side-notches to show if needed */
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -884,7 +884,7 @@
 }
 
 .pass-header {
-  padding: 40px 32px 32px;
+  padding: 16px 24px 8px;
   text-align: center;
   position: relative;
 }
@@ -893,7 +893,7 @@
 .health-pass-card::after {
   content: '';
   position: absolute;
-  top: 155px; /* Adjust based on header height */
+  top: 80px; /* Aligned with clean-compact header */
   left: -12px;
   width: 24px;
   height: 24px;
@@ -905,18 +905,18 @@
 
 .pass-right-notch {
   position: absolute;
-  top: 155px;
+  top: 80px;
   right: -12px;
   width: 24px;
   height: 24px;
-  background: #f8fafc; /* Match dashboard background */
+  background: #f8fafc;
   border-radius: 50%;
   border-left: 1px solid #e2e8f0;
   z-index: 10;
 }
 
 .pass-header h3 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 900;
   letter-spacing: -0.5px;
   color: #0f172a;
@@ -926,15 +926,15 @@
 .pass-live-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #f0fdf4;
   color: #166534;
-  padding: 6px 16px;
+  padding: 3px 10px;
   border-radius: 30px;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   border: 1px solid #dcfce7;
 }
 
@@ -948,15 +948,16 @@
 }
 
 .pass-body {
-  padding: 0 32px 32px;
+  padding: 0 24px 16px;
   border-top: 2px dashed #f1f5f9;
-  padding-top: 32px;
+  padding-top: 16px;
 }
 
-.pass-grid {
+.clean-compact-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  row-gap: 12px;
+  column-gap: 24px;
 }
 
 .pass-item {
@@ -966,18 +967,20 @@
 }
 
 .pass-item label {
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 900;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  margin-bottom: 2px;
 }
 
 .pass-item span {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #1e293b;
-  line-height: 1.2;
+  line-height: 1.3;
+  display: block;
 }
 
 .pass-item.reserved-slots span {
@@ -988,8 +991,8 @@
 
 .pass-footer {
   background: #f8fafc;
-  padding: 32px;
-  border-radius: 0 0 24px 24px;
+  padding: 12px 24px;
+  border-radius: 0 0 16px 16px;
   border-top: 1px solid #f1f5f9;
 }
 

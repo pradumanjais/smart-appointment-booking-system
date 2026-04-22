@@ -310,6 +310,7 @@ const UserDashboard = ({ handleLogout }) => {
       });
       setBookingData(prev => ({ ...prev, ...res.data, success: true }));
       setStep(6);
+      showToast('Appointment booked successfully!', 'success');
       refreshAppointments();
     } catch (err) {
       alert(err.response?.data?.message || 'Booking failed');
@@ -1106,7 +1107,7 @@ const UserDashboard = ({ handleLogout }) => {
 
                   {bookingData.success ? (
                     <div className="success-message-area">
-                      <h2 className="gradient-text-success">Successful!</h2>
+                      <h2 className="gradient-text-success">Appointment booked successfully</h2>
                       <p className="text-muted">Your identity has been verified. A confirmation SMS is on its way.</p>
                       
                       <div className="modern-sms-box">

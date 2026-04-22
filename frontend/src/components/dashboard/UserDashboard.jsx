@@ -1224,20 +1224,21 @@ const UserDashboard = ({ handleLogout }) => {
               />
             </div>
           ) : (
-            <div className="modern-profile-shell" style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 300px) 1fr', gap: '40px', alignItems: 'start' }}>
+            <div className="modern-profile-shell" style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 380px) 1fr', gap: '32px', alignItems: 'start' }}>
               
               {/* LEFT COLUMN: Patient Hero Sidebar */}
-              <div className="profile-hero-glass" style={{ padding: '40px', textAlign: 'center', position: 'sticky', top: '24px' }}>
-                <div className="avatar-glow-container">
+              <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: '24px' }}>
+                <div className="avatar-glow-container" style={{ marginBottom: '12px' }}>
                   <div className="avatar-glow-ring"></div>
                   <img 
                     src={profileForm.avatar || userData.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} 
                     alt={userData.name} 
                     className="profile-avatar-giant" 
+                    style={{ width: '90px', height: '90px' }}
                   />
                   {editMode && (
                     <label className="avatar-edit-glare">
-                      <Camera size={20} />
+                      <Camera size={16} />
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -1255,20 +1256,20 @@ const UserDashboard = ({ handleLogout }) => {
                   )}
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <div className="expert-badge-shimmer">
-                    <ShieldCheck size={14} /> VERIFIED PATIENT
+                <div style={{ marginBottom: '16px' }}>
+                  <div className="expert-badge-shimmer" style={{ padding: '5px 12px', fontSize: '0.65rem' }}>
+                    <ShieldCheck size={12} /> VERIFIED PATIENT
                   </div>
-                  <h2 className="text-gradient-name" style={{ fontSize: '2.4rem', fontWeight: 900, margin: '12px 0 4px', letterSpacing: '-1px' }}>
+                  <h2 className="text-gradient-name" style={{ fontSize: '1.5rem', fontWeight: 900, margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
                     {userData.name}
                   </h2>
-                  <p style={{ color: '#64748b', fontSize: '1.05rem', fontWeight: 600, opacity: 0.8 }}>{userData.email}</p>
-                  <div className="patient-id-badge" style={{ marginTop: '20px' }}>
-                    ID: {userData.patientId || 'VERIFICATION PENDING'}
+                  <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, opacity: 0.8, margin: 0 }}>{userData.email}</p>
+                  <div className="patient-id-badge" style={{ marginTop: '10px', padding: '5px 14px', fontSize: '0.8rem' }}>
+                    ID: {userData.patientId || 'PENDING'}
                   </div>
                 </div>
 
-                <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                   <VitalCard label="Blood Group" value={userData.bloodGroup || '—'} icon={Droplet} color="red" />
                   <VitalCard label="Age" value={calculateAge(userData.dob) || userData.age || '—'} icon={Calendar} color="blue" />
                   <VitalCard label="Gender" value={userData.gender || '—'} icon={User} color="purple" />
@@ -1276,13 +1277,13 @@ const UserDashboard = ({ handleLogout }) => {
                 </div>
 
                 {!editMode ? (
-                  <Button variant="primary" className="w-full" onClick={() => setEditMode(true)} style={{ borderRadius: '18px', padding: '16px', fontWeight: 800 }}>
-                    <Edit3 size={18} style={{ marginRight: '8px' }} /> Edit Full Profile
+                  <Button variant="primary" className="w-full" onClick={() => setEditMode(true)} style={{ borderRadius: '14px', padding: '10px', fontWeight: 800, fontSize: '0.9rem' }}>
+                    <Edit3 size={16} style={{ marginRight: '6px' }} /> Edit Full Profile
                   </Button>
                 ) : (
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <Button variant="secondary" className="w-full" onClick={() => setEditMode(false)} style={{ borderRadius: '18px' }}>Cancel</Button>
-                    <Button variant="primary" className="w-full" onClick={handleUpdateProfile} loading={loading} style={{ borderRadius: '18px' }}>Save Changes</Button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button variant="secondary" className="w-full" onClick={() => setEditMode(false)} style={{ borderRadius: '14px', padding: '10px', fontSize: '0.85rem' }}>Cancel</Button>
+                    <Button variant="primary" className="w-full" onClick={handleUpdateProfile} loading={loading} style={{ borderRadius: '14px', padding: '10px', fontSize: '0.85rem' }}>Save</Button>
                   </div>
                 )}
               </div>

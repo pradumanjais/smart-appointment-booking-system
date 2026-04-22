@@ -236,8 +236,8 @@
   margin-bottom: 24px;
 }
 
-/* Responsive Grid Tweaks */
-@media (max-width: 1200px) {
+/* Responsive Tweaks */
+@media (max-width: 900px) {
   .modern-profile-shell {
     grid-template-columns: 1fr !important;
   }

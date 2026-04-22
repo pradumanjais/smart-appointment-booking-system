@@ -19,11 +19,11 @@ const VitalCard = ({ label, value, icon: Icon, color = 'blue' }) => {
       boxShadow: 'var(--elevation-shadow)'
     }}>
       <div className="vital-icon-box" style={{ background: theme.bg, color: theme.text }}>
-        <Icon size={16} />
+        <Icon size={14} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <label style={{ fontSize: '0.6rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>{label}</label>
-        <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>{value}</span>
+        <label style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1px' }}>{label}</label>
+        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>{value}</span>
       </div>
     </div>
   );

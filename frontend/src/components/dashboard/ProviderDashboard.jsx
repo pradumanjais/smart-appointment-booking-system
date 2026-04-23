@@ -54,7 +54,9 @@ const PatientProfileModal = ({ patient, onClose, loading }) => {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
                   {patient.name}
                 </h2>
-                <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>ID: {patient.patientId}</div>
+                <div style={{ color: '#d97706', backgroundColor: '#fef3c7', padding: '4px 12px', borderRadius: '12px', display: 'inline-block', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  ID: {patient.patientId}
+                </div>
               </div>
 
               <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
@@ -106,13 +108,6 @@ const PatientProfileModal = ({ patient, onClose, loading }) => {
 
             {/* RIGHT COLUMN: Patient Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <ProfileInfoPack title="Contact & Residency" icon={MapPin} color="#10b981" columns={2}>
-                 <ProfileDataItem label="State / UT" value={patient.state} icon={MapPin} editMode={false} />
-                 <ProfileDataItem label="City" value={patient.city} icon={MapPin} editMode={false} />
-                 <ProfileDataItem label="Pin Code" value={patient.pinCode} icon={MapPin} editMode={false} />
-                 <ProfileDataItem label="Home Address" value={patient.address} icon={MapPin} editMode={false} />
-              </ProfileInfoPack>
-
               <ProfileInfoPack title="Medical Background" icon={Activity} color="#f43f5e" columns={2}>
                 <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                    <div style={{ padding: '16px', background: '#fff1f2', borderRadius: '20px', border: '1.5px solid #fecdd3' }}>
@@ -144,6 +139,18 @@ const PatientProfileModal = ({ patient, onClose, loading }) => {
                     <ProfileDataItem label="Contact Phone" value={patient.emergencyContact.phone} icon={Phone} editMode={false} />
                  </ProfileInfoPack>
               )}
+
+              <ProfileInfoPack title="Residency" icon={MapPin} color="#10b981" columns={1}>
+                 <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                       <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Permanent Address</label>
+                       <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', lineHeight: '1.5' }}>
+                         {[patient.address, patient.city, patient.state].filter(Boolean).join(', ')} {patient.pinCode ? `- ${patient.pinCode}` : ''}
+                         {(!patient.address && !patient.city && !patient.state) && 'No residency details provided'}
+                       </p>
+                    </div>
+                 </div>
+              </ProfileInfoPack>
             </div>
           </div>
         )}
@@ -364,13 +371,17 @@ const ProviderDashboard = ({ handleLogout }) => {
     try {
       // Ensure we pass a string ID
       const targetId = typeof patientId === 'object' ? (patientId._id || patientId.id) : patientId;
-      if (!targetId) throw new Error('No valid Patient ID found');
+      if (!targetId || targetId === 'undefined') throw new Error('No valid Patient ID found');
       
       const { data } = await api.get(`/auth/user/${targetId}`);
       setSelectedPatientProfile(data);
     } catch (err) {
       console.error('Patient Fetch Error:', err);
-      showToast('Could not fetch patient profile', 'error');
+      if (err.response && err.response.status === 404) {
+        showToast('Patient account could not be found or has been deactivated', 'error');
+      } else {
+        showToast('Could not fetch patient profile: ' + (err.message || ''), 'error');
+      }
       setShowPatientProfile(false);
     } finally {
       setLoadingPatientProfile(false);
@@ -1212,11 +1223,13 @@ const ProviderDashboard = ({ handleLogout }) => {
       )}
 
       {/* Patient Profile Modal */}
-      <PatientProfileModal 
-        patient={selectedPatientProfile} 
-        onClose={() => setShowPatientProfile(false)} 
-        loading={loadingPatientProfile}
-      />
+      {showPatientProfile && (
+        <PatientProfileModal 
+          patient={selectedPatientProfile} 
+          onClose={() => setShowPatientProfile(false)} 
+          loading={loadingPatientProfile}
+        />
+      )}
     </DashboardShell>
   );
 };

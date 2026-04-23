@@ -3,7 +3,7 @@ import React from 'react';
 const ProfileInfoPack = ({ title, icon: Icon, children, color = 'var(--primary)', columns }) => {
   return (
     <div className="glass-stat" style={{ 
-      padding: '32px', 
+      padding: '20px 24px', 
       borderRadius: '35px', 
       background: 'rgba(255,255,255,0.7)', 
       border: '1px solid rgba(255,255,255,0.5)',

@@ -10,10 +10,33 @@ import StatCard from './common/StatCard';
 import AppointmentListCard from './common/AppointmentListCard';
 import DailyScheduleCalendar from './common/DailyScheduleCalendar';
 import { useToast } from '../../context/ToastContext';
-import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Edit, Award, DollarSign, List, Grid, ChevronLeft, ChevronRight, Zap, Moon } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle, XCircle, MapPin, Phone, Star, Briefcase, Activity, Mail, TrendingUp, ShieldCheck, Camera, Edit3, Edit, Award, DollarSign, List, Grid, ChevronLeft, ChevronRight, Zap, Moon, Save, X, Hospital } from 'lucide-react';
 import ProviderSetupWizard from './ProviderSetupWizard';
 import VitalCard from './common/VitalCard';
+import ProfileInfoPack from './common/ProfileInfoPack';
+import ProfileDataItem from './common/ProfileDataItem';
 import { calculateAge } from '../../utils/dateUtils';
+import './ProfileRedesign.css';
+
+const indianStates = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", 
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", 
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", 
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+].sort();
+
+const specializations = [
+  'General Medicine', 'General Physician', 'Cardiology', 'Neurology', 
+  'Dermatology', 'Pediatrics', 'Orthopedics', 'Psychiatry',
+  'Gynecology', 'ENT Specialist', 'Ophthalmology', 'Gastroenterology',
+  'Urology', 'Oncology', 'Endocrinology', 'Pulmonology',
+  'Nephrology', 'Rheumatology', 'Homeopathy', 'Ayurveda',
+  'Dentistry', 'Dietician', 'Nutritionist', 'Physiotherapy',
+  'Radiology', 'Pathology'
+].sort();
 
 const ProviderDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
@@ -130,6 +153,8 @@ const ProviderDashboard = ({ handleLogout }) => {
   };
 
   // Edit Profile States
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [hospitals, setHospitals] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -234,6 +259,126 @@ const ProviderDashboard = ({ handleLogout }) => {
       }
       setShowSetupWizard(false);
       setWizardStartStep(1); // Reset for next time
+  };
+
+  const startEditingProfile = () => {
+    setEditProfileData({
+      name: providerData.userId?.name || '',
+      phone: providerData.userId?.phone || '',
+      dob: providerData.userId?.dob ? new Date(providerData.userId.dob).toISOString().split('T')[0] : '',
+      bio: providerData.bio || '',
+      fathersName: providerData.fathersName || '',
+      mothersName: providerData.mothersName || '',
+      address: providerData.address || '',
+      state: providerData.state || providerData.location || '',
+      pinCode: providerData.pinCode || '',
+      clinicName: providerData.clinicName || '',
+      clinicAddress: providerData.clinicAddress || '',
+      clinicState: providerData.clinicState || providerData.location || '',
+      clinicPinCode: providerData.clinicPinCode || '',
+      registrationNumber: providerData.registrationNumber || '',
+      medicalCouncil: providerData.medicalCouncil || '',
+      degrees: Array.isArray(providerData.degrees) ? providerData.degrees.join(', ') : providerData.degrees || '',
+      medicalCollege: providerData.medicalCollege || '',
+      experience: providerData.experience || 0,
+      specialization: providerData.specialization || '',
+      yearOfDegreeAchieved: providerData.yearOfDegreeAchieved || '',
+      avatar: providerData.userId?.avatar || '',
+      consultationFees: {
+        inPerson: providerData.consultationFees?.inPerson || 0,
+        online: providerData.consultationFees?.online || 0
+      }
+    });
+    setIsEditingProfile(true);
+  };
+
+  const handleProfileFieldChange = (field, value) => {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setEditProfileData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setEditProfileData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleSaveProfileUpdate = async () => {
+    setSaving(true);
+    try {
+      // 1. Prepare shared fields with filtering for empty values
+      const sharedFields = {
+        name: editProfileData.name?.trim(),
+        phone: editProfileData.phone?.trim(),
+        fathersName: editProfileData.fathersName?.trim(),
+        mothersName: editProfileData.mothersName?.trim(),
+        address: editProfileData.address?.trim(),
+        state: editProfileData.state?.trim(),
+        pinCode: editProfileData.pinCode?.trim(),
+        avatar: editProfileData.avatar
+      };
+
+      // Handle DOB and Age separately
+      if (editProfileData.dob) {
+        sharedFields.dob = editProfileData.dob;
+        sharedFields.age = calculateAge(editProfileData.dob);
+      }
+
+      // 2. Update Core User Details
+      try {
+        await api.put('/auth/profile', sharedFields);
+      } catch (authErr) {
+        throw new Error(`Auth Error: ${authErr.response?.data?.message || authErr.message}`);
+      }
+
+      // 3. Update Provider Specific Details
+      const cleanedData = {
+        ...editProfileData,
+        ...sharedFields, // Ensure synchronization
+        degrees: typeof editProfileData.degrees === 'string' 
+          ? editProfileData.degrees.split(',').map(d => d.trim()).filter(d => d)
+          : editProfileData.degrees,
+        experience: Number(editProfileData.experience) || 0,
+        yearOfDegreeAchieved: Number(editProfileData.yearOfDegreeAchieved) || providerData.yearOfDegreeAchieved || 2020,
+        consultationFees: {
+          inPerson: Number(editProfileData.consultationFees?.inPerson) || 0,
+          online: Number(editProfileData.consultationFees?.online) || 0
+        },
+        // Preserve values that shouldn't change
+        hospitalId: providerData.hospitalId?._id || providerData.hospitalId,
+        slotDuration: providerData.slotDuration,
+        throughputCapacity: providerData.throughputCapacity || providerData.maxPatientsPerSlot || 1,
+        availability: providerData.availability,
+        visibility: providerData.visibility || 'public'
+      };
+
+      try {
+        const { data: updatedProvider } = await api.post('/providers/profile', cleanedData);
+        setProviderData(updatedProvider);
+        if (updatedProvider.userId) setUserData(updatedProvider.userId);
+      } catch (provErr) {
+        throw new Error(`Provider Error: ${provErr.response?.data?.message || provErr.message}`);
+      }
+      
+      setIsEditingProfile(false);
+      showToast('Profile updated successfully!', 'success');
+    } catch (err) {
+      console.error('Save Procedure Failed:', err);
+      
+      // Handle express-validator style errors
+      if (err.response?.data?.errors) {
+        const firstError = err.response.data.errors[0];
+        showToast(`${firstError.msg} (${firstError.path || firstError.param})`, 'error');
+      } else {
+        showToast(err.message, 'error');
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleProfileLegacySave = async () => {
@@ -502,17 +647,35 @@ const ProviderDashboard = ({ handleLogout }) => {
 }
 
       {currentTab === 'profile' && providerData && (
-        <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '32px', alignItems: 'start' }}>
+        <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* LEFT COLUMN: Premium Expert Hero Sidebar */}
           <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: 'calc(var(--header-height) + 24px)', zIndex: 10, overflow: 'hidden' }}>
             <div className="avatar-glow-container" style={{ marginBottom: '12px' }}>
               <div className="avatar-glow-ring"></div>
               <img 
-                src={providerData.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
+                src={isEditingProfile ? (editProfileData.avatar || providerData.userId?.avatar) : providerData.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
                 alt="Expert" 
                 className="profile-avatar-giant" 
                 style={{ width: '90px', height: '90px' }}
               />
+              {isEditingProfile && (
+                <label className="avatar-edit-glare">
+                  <Camera size={16} />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                         const reader = new FileReader();
+                         reader.onloadend = () => setEditProfileData({...editProfileData, avatar: reader.result});
+                         reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+              )}
             </div>
 
             <div style={{ marginBottom: '16px' }}>
@@ -539,174 +702,196 @@ const ProviderDashboard = ({ handleLogout }) => {
               <VitalCard label="Capacity" value={`${providerData.throughputCapacity || 1}/Slot`} icon={Clock} color="purple" />
             </div>
 
-            <Button 
-              variant="primary" 
-              className="w-full" 
-              onClick={() => openWizard(1)}
-              style={{ borderRadius: '14px', padding: '12px', fontWeight: 800, fontSize: '0.9rem' }}
-            >
-              <Edit3 size={16} style={{ marginRight: '6px' }} /> Update Profile
-            </Button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {!isEditingProfile ? (
+                 <Button 
+                   variant="primary" 
+                   className="w-full" 
+                   onClick={() => {
+                     setCurrentTab('profile');
+                     startEditingProfile();
+                   }}
+                   style={{ borderRadius: '14px', padding: '12px', fontWeight: 800, fontSize: '0.9rem', background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)', border: 'none', boxShadow: '0 8px 20px -6px rgba(79, 70, 229, 0.4)' }}
+                 >
+                   <Edit3 size={16} style={{ marginRight: '6px' }} /> Update Profile Info
+                 </Button>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button 
+                    variant="secondary" 
+                    className="w-full" 
+                    onClick={() => setIsEditingProfile(false)}
+                    disabled={saving}
+                    style={{ borderRadius: '14px', padding: '10px', fontWeight: 700, fontSize: '0.85rem' }}
+                  >
+                    <X size={16} style={{ marginRight: '4px' }} /> Cancel
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    className="w-full" 
+                    onClick={handleSaveProfileUpdate}
+                    loading={saving}
+                    style={{ borderRadius: '14px', padding: '10px', fontWeight: 800, fontSize: '0.85rem' }}
+                  >
+                    <Save size={16} style={{ marginRight: '4px' }} /> Save
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* RIGHT COLUMN: Enhanced Data Packs */}
-          <div className="profile-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="profile-tab-content animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}>
             
-            {/* PROFESSIONAL BIO - PRIMARY HIGHLIGHT */}
-            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <Star size={18} color="#f59e0b" fill="#f59e0b" />
-                </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Professional Bio</h3>
-              </div>
-              
-              <div className="data-item-premium" style={{ alignItems: 'start', background: 'white', border: '1.5px solid #f1f5f9', padding: '16px' }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.6', color: '#475569', fontWeight: 500, fontStyle: providerData.bio ? 'normal' : 'italic' }}>
-                    {providerData.bio || 'Your professional biography provides patients with meaningful context about your practice.'}
-                  </p>
-                </div>
-              </div>
-            </div>
+            {/* BIO SECTION */}
+            <ProfileInfoPack title="Professional Biography" icon={Briefcase} color="var(--primary)" columns={1}>
+              <ProfileDataItem 
+                label="Practice Philosophy & Biography" 
+                value={isEditingProfile ? editProfileData.bio : providerData.bio} 
+                editMode={isEditingProfile} 
+                type="textarea"
+                hideIcon={true}
+                placeholder="Share your expertise, philosophy, and experience..."
+                onChange={e => handleProfileFieldChange('bio', e.target.value)} 
+                icon={Edit3} 
+              />
+            </ProfileInfoPack>
 
             {/* PERSONAL IDENTITY */}
-            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <User size={18} color="var(--primary)" />
-                </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Personal Identity</h3>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                <div className="data-item-premium" style={{ padding: '10px 14px' }}>
-                  <div className="data-icon-wrapper"><User size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Full Legal Name</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.name || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><User size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Father's Name</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.fathersName || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><User size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Mother's Name</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.mothersName || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Clock size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Age</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{calculateAge(providerData.userId?.dob) || providerData.userId?.age || '—'} Years</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Mail size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Email Address</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.email || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Phone size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Mobile Number</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.userId?.phone || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium" style={{ gridColumn: 'span 2' }}>
-                  <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Residential Address</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                      {providerData.address ? `${providerData.address}, ` : ''}{providerData.state || '—'}{providerData.pinCode ? ` - ${providerData.pinCode}` : ''}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProfileInfoPack title="Personal Identity" icon={User} color="#6366f1" columns={2}>
+              <ProfileDataItem 
+                label="Name" value={isEditingProfile ? editProfileData.name : providerData.userId?.name} 
+                editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('name', e.target.value)} icon={User} 
+              />
+              <ProfileDataItem 
+                label="Father's Name" value={isEditingProfile ? editProfileData.fathersName : providerData.fathersName} 
+                editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('fathersName', e.target.value)} icon={User} 
+              />
+              <ProfileDataItem 
+                label="Mother's Name" value={isEditingProfile ? editProfileData.mothersName : providerData.mothersName} 
+                editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('mothersName', e.target.value)} icon={User} 
+              />
+              <ProfileDataItem 
+                label="Date of Birth" value={isEditingProfile ? editProfileData.dob : providerData.userId?.dob?.split('T')[0]} 
+                type="date" editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('dob', e.target.value)} icon={Calendar} 
+              />
+              <ProfileDataItem 
+                label="Mobile Number" value={isEditingProfile ? editProfileData.phone : providerData.userId?.phone} 
+                editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('phone', e.target.value)} icon={Phone} 
+              />
+              <ProfileDataItem 
+                label="Email Address" value={providerData.userId?.email} 
+                editMode={false} // Email is typically read-only in profile updates
+                icon={Mail} 
+              />
+              <ProfileDataItem 
+                label="Residential Address" 
+                value={isEditingProfile 
+                  ? editProfileData.address 
+                  : `${providerData.address || ''}${providerData.state ? ', ' + providerData.state : ''}${providerData.pinCode ? ' - ' + providerData.pinCode : ''}`
+                } 
+                editMode={isEditingProfile} 
+                colSpan={2}
+                onChange={e => handleProfileFieldChange('address', e.target.value)} icon={MapPin} 
+              />
+              {isEditingProfile && (
+                <>
+                  <ProfileDataItem 
+                    label="Residential State" value={editProfileData.state} 
+                    type="select" options={indianStates} editMode={true} 
+                    onChange={e => handleProfileFieldChange('state', e.target.value)} icon={MapPin} 
+                  />
+                  <ProfileDataItem 
+                    label="PIN Code" value={editProfileData.pinCode} 
+                    editMode={true} 
+                    onChange={e => handleProfileFieldChange('pinCode', e.target.value)} icon={MapPin} 
+                  />
+                </>
+              )}
+            </ProfileInfoPack>
 
             {/* WORKING LOCATION */}
-            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <MapPin size={18} color="#10b981" />
-                </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Working Location</h3>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="data-item-premium" style={{ background: 'linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1.5px solid #bae6fd', padding: '12px 16px' }}>
-                   <div className="data-icon-wrapper" style={{ background: 'white' }}><Activity size={18} /></div>
-                   <div style={{ flex: 1 }}>
-                     <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: '#0369a1', textTransform: 'uppercase' }}>Clinical Institution</label>
-                     <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0c4a6e' }}>{providerData.clinicName || 'Universal Health Center'}</span>
-                   </div>
-                </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                  <div className="data-item-premium">
-                    <div className="data-icon-wrapper"><MapPin size={18} /></div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinic Address</label>
-                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-                        {providerData.clinicAddress || '—'}{providerData.clinicState ? `, ${providerData.clinicState}` : ''}{providerData.clinicPinCode ? ` - ${providerData.clinicPinCode}` : ''}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
+            <ProfileInfoPack title="Working Location" icon={MapPin} color="#10b981" columns={2}>
+              <ProfileDataItem 
+                label="Clinical Institution" value={isEditingProfile ? editProfileData.clinicName : providerData.clinicName} 
+                editMode={isEditingProfile} colSpan={2}
+                onChange={e => handleProfileFieldChange('clinicName', e.target.value)} icon={Hospital} 
+              />
+              <ProfileDataItem 
+                label="Clinic Address" 
+                value={isEditingProfile 
+                  ? editProfileData.clinicAddress 
+                  : `${providerData.clinicAddress || ''}${providerData.clinicState ? ', ' + providerData.clinicState : ''}${providerData.clinicPinCode ? ' - ' + providerData.clinicPinCode : ''}`
+                } 
+                editMode={isEditingProfile} 
+                colSpan={2}
+                onChange={e => handleProfileFieldChange('clinicAddress', e.target.value)} icon={MapPin} 
+              />
+              {isEditingProfile && (
+                <>
+                  <ProfileDataItem 
+                    label="Clinic State" value={editProfileData.clinicState} 
+                    type="select" options={indianStates} editMode={true} 
+                    onChange={e => handleProfileFieldChange('clinicState', e.target.value)} icon={MapPin} 
+                  />
+                  <ProfileDataItem 
+                    label="Clinic PIN Code" value={editProfileData.clinicPinCode} 
+                    editMode={true} 
+                    onChange={e => handleProfileFieldChange('clinicPinCode', e.target.value)} icon={MapPin} 
+                  />
+                </>
+              )}
+            </ProfileInfoPack>
 
             {/* MEDICAL CREDENTIALS */}
-            <div className="glass-stat" style={{ padding: '24px', borderRadius: '24px', background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <div style={{ background: 'white', padding: '8px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                  <ShieldCheck size={18} color="#7c3aed" />
-                </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0 }}>Medical Credentials</h3>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><ShieldCheck size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Registration Number</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{providerData.registrationNumber || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Activity size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Medical Council</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.medicalCouncil || '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Award size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Professional Degrees</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.degrees?.length > 0 ? providerData.degrees.join(', ') : '—'}</span>
-                  </div>
-                </div>
-                <div className="data-item-premium">
-                  <div className="data-icon-wrapper"><Briefcase size={18} /></div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Affiliated Institution</label>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>{providerData.medicalCollege || '—'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProfileInfoPack title="Medical Credentials" icon={ShieldCheck} color="#f59e0b" columns={2}>
+              <ProfileDataItem 
+                label="Expertise / Specialization" value={isEditingProfile ? editProfileData.specialization : providerData.specialization} 
+                type="select" options={specializations} editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('specialization', e.target.value)} icon={Activity} 
+              />
+              <ProfileDataItem 
+                label="Professional Degrees" value={isEditingProfile ? editProfileData.degrees : providerData.degrees?.join(', ')} 
+                editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('degrees', e.target.value)} placeholder="MBBS, MD, MS..." icon={Award} 
+              />
+              <ProfileDataItem 
+                label="Degrees Awarded By (College)" value={isEditingProfile ? editProfileData.medicalCollege : providerData.medicalCollege} 
+                editMode={isEditingProfile}
+                onChange={e => handleProfileFieldChange('medicalCollege', e.target.value)} icon={Briefcase} 
+              />
+              <ProfileDataItem 
+                label="Experience (Years)" value={isEditingProfile ? editProfileData.experience : providerData.experience} 
+                type="number" editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('experience', e.target.value)} icon={TrendingUp} 
+              />
+              <ProfileDataItem 
+                label="Registration Number" value={isEditingProfile ? editProfileData.registrationNumber : providerData.registrationNumber} 
+                editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('registrationNumber', e.target.value)} icon={ShieldCheck} 
+              />
+              <ProfileDataItem 
+                label="Medical Council" value={isEditingProfile ? editProfileData.medicalCouncil : providerData.medicalCouncil} 
+                editMode={isEditingProfile}
+                onChange={e => handleProfileFieldChange('medicalCouncil', e.target.value)} icon={ShieldCheck} 
+              />
+              <ProfileDataItem 
+                label="In-Person Fee (₹)" value={isEditingProfile ? editProfileData.consultationFees.inPerson : providerData.consultationFees?.inPerson} 
+                type="number" editMode={isEditingProfile} 
+                onChange={e => handleProfileFieldChange('consultationFees.inPerson', e.target.value)} icon={DollarSign} 
+              />
+              <ProfileDataItem 
+                label="Video Fee" value="Coming Soon" 
+                editMode={false} 
+                icon={DollarSign} 
+              />
+            </ProfileInfoPack>
+
           </div>
         </div>
       )}

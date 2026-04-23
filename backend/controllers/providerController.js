@@ -201,7 +201,9 @@ const updateProviderProfile = async (req, res) => {
       bankDetails: bankDetails || {},
       gstNumber, visibility, bio, location, hospitalId,
       clinicName, clinicAddress, clinicState, clinicPinCode,
-      fathersName, mothersName, address, state, pinCode
+      fathersName, mothersName, address, state, pinCode,
+      // Auto-verify if essential professional details are completed
+      isVerified: !!(registrationNumber && medicalCouncil && specialization && experience && bio)
     };
 
     if (provider) {

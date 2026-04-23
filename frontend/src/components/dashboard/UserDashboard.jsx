@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone, Activity, ShieldCheck, Mail, Camera, Edit3, Shield, Download, Droplet } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone, Activity, ShieldCheck, Mail, Camera, Edit3, Shield, Download, Droplet, X, Briefcase, Award, TrendingUp, DollarSign } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import InputField from '../common/InputField';
@@ -19,6 +19,99 @@ import VitalCard from './common/VitalCard';
 import ProfileInfoPack from './common/ProfileInfoPack';
 import ProfileDataItem from './common/ProfileDataItem';
 import { calculateAge } from '../../utils/dateUtils';
+
+const ExpertProfileModal = ({ expert, onClose, loading }) => {
+  if (!expert && !loading) return null;
+
+  return (
+    <div className="expert-modal-overlay" onClick={onClose}>
+      <div className="expert-modal-content" onClick={e => e.stopPropagation()} style={{ padding: '32px' }}>
+        <button className="close-modal-btn" onClick={onClose}>
+          <X size={20} />
+        </button>
+
+        {loading ? (
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div className="loading-spinner-premium"></div>
+            <p style={{ marginTop: '20px', fontWeight: 700, color: '#64748b' }}>Consulting Expert Records...</p>
+          </div>
+        ) : (
+          <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '32px', alignItems: 'start', maxWidth: 'none' }}>
+            {/* LEFT COLUMN: Expert Hero */}
+            <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: 0 }}>
+              <div className="avatar-glow-container" style={{ marginBottom: '12px' }}>
+                <div className="avatar-glow-ring"></div>
+                <img 
+                  src={expert.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
+                  alt="Expert" 
+                  className="profile-avatar-giant" 
+                  style={{ width: '90px', height: '90px' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div className={`expert-badge-shimmer ${expert.isVerified ? 'expert-badge-verified' : 'expert-badge-pending'}`} style={{ marginBottom: '10px', padding: '5px 12px', fontSize: '0.65rem' }}>
+                  <ShieldCheck size={12} /> {expert.isVerified ? 'VERIFIED SPECIALIST' : 'VERIFICATION PENDING'}
+                </div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
+                  Dr. {expert.userId?.name}
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, opacity: 0.8, margin: 0 }}>{expert.specialization}</p>
+              </div>
+
+              <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+                <div className="specialist-vital-pill">
+                  <label>Experience</label>
+                  <span>{expert.experience || 0}+ Yrs</span>
+                </div>
+                <div className="specialist-vital-pill">
+                  <label>Expert Score</label>
+                  <span><Star size={12} fill="#ffcc00" color="#ffcc00" /> {expert.rating || 4.9}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: Expert Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <ProfileInfoPack title="Personal Identity" icon={User} color="#6366f1" columns={2}>
+                <ProfileDataItem label="Name" value={expert.userId?.name} icon={User} editMode={false} />
+                <ProfileDataItem label="Father's Name" value={expert.fathersName} icon={User} editMode={false} />
+                <ProfileDataItem label="Age" value={calculateAge(expert.userId?.dob) || 'Not Specified'} icon={Calendar} editMode={false} />
+                <ProfileDataItem label="Mobile Number" value={expert.userId?.phone} icon={Phone} editMode={false} />
+                <ProfileDataItem label="Email Address" value={expert.userId?.email} icon={Mail} editMode={false} />
+              </ProfileInfoPack>
+
+              <ProfileInfoPack title="Medical Credentials" icon={ShieldCheck} color="#f59e0b" columns={2}>
+                <ProfileDataItem label="Expertise" value={expert.specialization} icon={Activity} editMode={false} />
+                <ProfileDataItem label="Professional Degrees" value={Array.isArray(expert.degrees) ? expert.degrees.join(', ') : expert.degrees} icon={Award} editMode={false} />
+                <ProfileDataItem label="Awarded By" value={expert.medicalCollege} icon={Briefcase} editMode={false} />
+                <ProfileDataItem label="Registration No" value={expert.registrationNumber} icon={ShieldCheck} editMode={false} />
+                <ProfileDataItem label="Medical Council" value={expert.medicalCouncil} icon={ShieldCheck} editMode={false} />
+                <ProfileDataItem label="Consultation Fee" value={`₹ ${expert.consultationFees?.inPerson || 0}`} icon={DollarSign} editMode={false} />
+              </ProfileInfoPack>
+
+              <ProfileInfoPack title="Working Location" icon={MapPin} color="#10b981" columns={1}>
+                <ProfileDataItem label="Clinical Institution" value={expert.clinicName} icon={Hospital} editMode={false} />
+                <ProfileDataItem 
+                  label="Clinical Address" 
+                  value={`${expert.clinicAddress || ''}${expert.clinicState ? ', ' + expert.clinicState : ''}${expert.clinicPinCode ? ' - ' + expert.clinicPinCode : ''}`} 
+                  icon={MapPin} 
+                  editMode={false} 
+                />
+              </ProfileInfoPack>
+              
+              {expert.bio && (
+                 <ProfileInfoPack title="About the Expert" icon={Activity} color="#ec4899" columns={1}>
+                    <p style={{ lineHeight: 1.6, color: '#475569', margin: 0, fontSize: '0.95rem' }}>{expert.bio}</p>
+                 </ProfileInfoPack>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const UserDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
@@ -82,6 +175,11 @@ const UserDashboard = ({ handleLogout }) => {
     phone: '',
     success: false
   });
+  
+  // Expert Profile State
+  const [profilePreviewExpert, setProfilePreviewExpert] = useState(null);
+  const [showExpertProfile, setShowExpertProfile] = useState(false);
+  const [loadingExpertProfile, setLoadingExpertProfile] = useState(false);
 
   // Reset booking wizard whenever user navigates to the browse tab
   useEffect(() => {
@@ -189,6 +287,22 @@ const UserDashboard = ({ handleLogout }) => {
     };
     fetchData();
   }, []);
+
+  const handleViewExpertProfile = async (e, expertId) => {
+    e.stopPropagation();
+    setLoadingExpertProfile(true);
+    setShowExpertProfile(true);
+    setProfilePreviewExpert(null); // Reset prev
+    try {
+      const res = await api.get(`/providers/${expertId}`);
+      setProfilePreviewExpert(res.data);
+    } catch (err) {
+      showToast('Could not fetch expert profile', 'error');
+      setShowExpertProfile(false);
+    } finally {
+      setLoadingExpertProfile(false);
+    }
+  };
 
   // Auto-calculate age when DOB changes
   useEffect(() => {
@@ -900,17 +1014,30 @@ const UserDashboard = ({ handleLogout }) => {
                     <label className="input-label" style={{ display: 'block', marginBottom: '8px' }}>Select Time Slot</label>
                     <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '16px' }}>
                       {['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'].map((time, i) => {
+                        // Check if time has already passed for today
+                        const slotDateTime = new Date(`${bookingData.date}T${time}:00`);
+                        const now = new Date();
+                        const isPast = slotDateTime < now;
+
                         // Integrate live backend capacity map
                         const liveData = capacityMap[time];
                         const isDataLoaded = Object.keys(capacityMap).length > 0;
-                        const capacityState = loadingCapacity ? 'loading' : (liveData ? liveData.state : (isDataLoaded ? 'unavailable' : 'loading'));
+                        let capacityState = loadingCapacity ? 'loading' : (liveData ? liveData.state : (isDataLoaded ? 'unavailable' : 'loading'));
+                        
+                        // Force unavailable if time passed
+                        if (isPast) capacityState = 'unavailable';
+
                         const capacityPercent = liveData ? liveData.percent : 0;
                         
                         let baseColor = '#10b981'; // Emerald Green
                         let bgColor = '#ecfdf5'; // Light Green
                         let label = 'Available';
-                        
-                        if (capacityState === 'loading') {
+
+                        if (isPast) {
+                          baseColor = '#94a3b8'; // Slate Gray
+                          bgColor = '#f1f5f9';
+                          label = 'Time Passed';
+                        } else if (capacityState === 'loading') {
                           baseColor = '#94a3b8'; // Slate Gray
                           bgColor = '#f8fafc';
                           label = 'Syncing...';
@@ -1029,6 +1156,12 @@ const UserDashboard = ({ handleLogout }) => {
                           </div>
                           <div className="mini-rating"><Star size={12} fill="#ffcc00" color="#ffcc00" /> {p.rating}</div>
                         </div>
+                        <button 
+                          className="view-profile-mini-btn"
+                          onClick={(e) => handleViewExpertProfile(e, p._id)}
+                        >
+                          View Profile
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -1423,6 +1556,13 @@ const UserDashboard = ({ handleLogout }) => {
       <div style={{ position: 'absolute', left: '-9999px', top: '0', pointerEvents: 'none', zIndex: -1 }}>
          {ticketData && <AppointmentCard appointment={ticketData} cardRef={cardRef} />}
       </div>
+      {showExpertProfile && (
+        <ExpertProfileModal 
+          expert={profilePreviewExpert} 
+          loading={loadingExpertProfile} 
+          onClose={() => setShowExpertProfile(false)} 
+        />
+      )}
     </DashboardShell>
   );
 };

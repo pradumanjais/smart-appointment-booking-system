@@ -153,7 +153,10 @@ const getProviders = async (req, res) => {
 // @access  Public
 const getProviderById = async (req, res) => {
   try {
-    const provider = await Provider.findById(req.params.id).populate('userId', 'name email avatar');
+    const provider = await Provider.findById(req.params.id)
+      .populate('userId', 'name email avatar phone dob')
+      .populate('hospitalId', 'name state address');
+    
     if (!provider) {
       return res.status(404).json({ message: 'Provider not found' });
     }

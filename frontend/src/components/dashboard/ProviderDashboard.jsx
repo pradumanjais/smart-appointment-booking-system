@@ -679,8 +679,8 @@ const ProviderDashboard = ({ handleLogout }) => {
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <div className={`status-badge-unified ${providerData.isVerified ? 'sb-confirmed' : 'sb-pending'}`} style={{ marginBottom: '10px', padding: '5px 12px', fontSize: '0.65rem' }}>
-                {providerData.isVerified ? 'VERIFIED SPECIALIST' : 'VERIFICATION PENDING'}
+              <div className={`expert-badge-shimmer ${providerData.isVerified ? 'expert-badge-verified' : 'expert-badge-pending'}`} style={{ marginBottom: '10px', padding: '5px 12px', fontSize: '0.65rem' }}>
+                <ShieldCheck size={12} /> {providerData.isVerified ? 'VERIFIED SPECIALIST' : 'VERIFICATION PENDING'}
               </div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
                 Dr. {providerData.userId?.name}

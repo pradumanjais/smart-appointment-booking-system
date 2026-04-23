@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, MapPin, Star, Calendar, Clock, User, CheckCircle, Video, MessageSquare, ChevronRight, ChevronLeft, PlusSquare, Hospital, Phone, Activity, ShieldCheck, Mail, Camera, Edit3, Shield, Download, Droplet, X, Briefcase, Award, TrendingUp, DollarSign } from 'lucide-react';
 import Card from '../common/Card';
 import Button from '../common/Button';
@@ -141,6 +142,7 @@ const ExpertProfileModal = ({ expert, onClose, loading }) => {
 
 const UserDashboard = ({ handleLogout }) => {
   const { showToast } = useToast();
+  const location = useLocation();
   const [currentTab, setCurrentTab] = useState('overview');
   const [myAppointments, setMyAppointments] = useState([]);
   const [userData, setUserData] = useState(null);
@@ -206,6 +208,39 @@ const UserDashboard = ({ handleLogout }) => {
   const [profilePreviewExpert, setProfilePreviewExpert] = useState(null);
   const [showExpertProfile, setShowExpertProfile] = useState(false);
   const [loadingExpertProfile, setLoadingExpertProfile] = useState(false);
+
+  // Deep-link from Find Doctors page: pre-select doctor and jump to date step
+  useEffect(() => {
+    if (location.state?.bookDoctor) {
+      const doc = location.state.bookDoctor;
+      const hospId = doc.hospitalId?._id || doc.hospitalId || '';
+      const hospState = doc.hospitalId?.state || doc.clinicState || '';
+      const clinic = doc.clinicName || doc.hospitalId?.name || '';
+      const fullHospital = hospitals.find(h => h._id === hospId) || doc.hospitalId || null;
+
+      setSelectedProvider(doc);
+      setSelectedHospital(fullHospital);
+      setBookingData(prev => ({
+        ...prev,
+        hospitalId: hospId,
+        hospitalState: hospState,
+        clinicName: clinic,
+        appointmentType: 'New',
+        appointmentMode: 'Physical',
+        department: doc.specialization || '',
+        date: new Date().toISOString().split('T')[0],
+        startTime: '',
+        endTime: '',
+        phone: userData?.phone || '',
+      }));
+      isFollowUpDeepLink.current = true;
+      setCurrentTab('browse');
+      setStep(4);
+
+      // Clear location state so refreshing doesn't re-trigger
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   // Reset booking wizard whenever user navigates to the browse tab
   useEffect(() => {
@@ -423,7 +458,7 @@ const UserDashboard = ({ handleLogout }) => {
 
     if (step === 2 && bookingData.appointmentType === 'Follow-up' && bookingData.department) {
       setStep(4);
-    } else if (step === 4 && bookingData.appointmentType === 'Follow-up' && selectedProvider) {
+    } else if (step === 4 && selectedProvider) {
       setStep(6); // Skip Step 5 (Provider Selection) since we already have the doctor
     } else {
       setStep(step + 1);
@@ -433,7 +468,7 @@ const UserDashboard = ({ handleLogout }) => {
   const handleBack = () => {
     if (step === 4 && bookingData.appointmentType === 'Follow-up' && bookingData.department) {
       setStep(2);
-    } else if (step === 6 && bookingData.appointmentType === 'Follow-up' && selectedProvider) {
+    } else if (step === 6 && selectedProvider && bookingData.appointmentType !== 'New') {
       setStep(4); // Go back to Date/Slot selection, skipping doctor list
     } else {
       setStep(step - 1);

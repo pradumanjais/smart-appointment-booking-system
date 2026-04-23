@@ -1,8 +1,9 @@
 import React from 'react';
 import { Star, MapPin, Video, Clock, ChevronRight, ShieldCheck, Award } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const DoctorCard = ({ doctor }) => {
+  const navigate = useNavigate();
   const {
     _id,
     userId,
@@ -120,27 +121,48 @@ const DoctorCard = ({ doctor }) => {
         </div>
       </div>
 
-      {/* Middle Section: Fee & Next Available */}
+      {/* Middle Section: Fees Breakdown */}
       <div style={{ 
         background: 'linear-gradient(to right, #f8fafc, #f1f5f9)', 
         borderRadius: '16px', 
         padding: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
+        display: 'grid',
+        gridTemplateColumns: consultationFees?.inPerson != null && consultationFees?.online != null ? '1fr 1fr 1fr' : '1fr 1fr',
+        gap: '12px',
         alignItems: 'center',
         border: '1px solid #e2e8f0'
       }}>
-        <div>
-            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Consultation</p>
-            <p style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: 900, margin: 0 }}>
-              ₹{consultationFees?.online || consultationFees?.inPerson || 'N/A'}
+        {consultationFees?.inPerson != null && (
+          <div>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={10} /> In-Person
             </p>
-        </div>
+            <p style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 900, margin: 0 }}>
+              ₹{consultationFees.inPerson}
+            </p>
+          </div>
+        )}
+        {consultationFees?.online != null && (
+          <div>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Video size={10} /> Online
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 800, margin: 0, fontStyle: 'italic' }}>
+              Coming Soon
+            </p>
+          </div>
+        )}
+        {(!consultationFees || (consultationFees.inPerson == null && consultationFees.online == null)) && (
+          <div>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Fee</p>
+            <p style={{ fontSize: '1.15rem', color: '#94a3b8', fontWeight: 900, margin: 0 }}>Not listed</p>
+          </div>
+        )}
         <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Availability</p>
-            <p style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Status</p>
+            <p style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
               <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #10b981' }}></span>
-              Available Slots
+              Available
             </p>
         </div>
       </div>
@@ -160,8 +182,8 @@ const DoctorCard = ({ doctor }) => {
             )}
         </div>
         
-        <Link 
-          to={`/doctor/${_id}`}
+        <button 
+          onClick={() => navigate('/dashboard', { state: { bookDoctor: doctor } })}
           style={{ 
             background: '#6366f1',
             color: 'white',
@@ -171,14 +193,15 @@ const DoctorCard = ({ doctor }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            textDecoration: 'none',
+            border: 'none',
+            cursor: 'pointer',
             fontSize: '0.95rem'
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = '#4f46e5'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = '#6366f1'; }}
         >
           Book <ChevronRight size={16} strokeWidth={3} />
-        </Link>
+        </button>
       </div>
     </div>
   );

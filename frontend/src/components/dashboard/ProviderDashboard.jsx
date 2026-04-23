@@ -18,6 +18,140 @@ import ProfileDataItem from './common/ProfileDataItem';
 import { calculateAge } from '../../utils/dateUtils';
 import './ProfileRedesign.css';
 
+const PatientProfileModal = ({ patient, onClose, loading }) => {
+  if (!patient && !loading) return null;
+
+  return (
+    <div className="expert-modal-overlay" onClick={onClose}>
+      <div className="expert-modal-content" onClick={e => e.stopPropagation()} style={{ padding: '32px' }}>
+        <button className="close-modal-btn" onClick={onClose}>
+          <X size={20} />
+        </button>
+
+        {loading ? (
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div className="loading-spinner-premium"></div>
+            <p style={{ marginTop: '20px', fontWeight: 700, color: '#64748b' }}>Accessing Health Records...</p>
+          </div>
+        ) : (
+          <div className="modern-profile-shell animate-slide-up" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '32px', alignItems: 'start', maxWidth: 'none' }}>
+            {/* LEFT COLUMN: Patient Hero */}
+            <div className="profile-hero-glass" style={{ padding: '24px', textAlign: 'center', position: 'sticky', top: 0 }}>
+              <div className="avatar-glow-container" style={{ marginBottom: '12px' }}>
+                <div className="avatar-glow-ring"></div>
+                <img 
+                  src={patient.avatar || 'https://cdn-icons-png.flaticon.com/512/1053/1053244.png'} 
+                  alt="Patient" 
+                  className="profile-avatar-giant" 
+                  style={{ width: '90px', height: '90px' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div className="expert-badge-shimmer expert-badge-verified" style={{ marginBottom: '10px', padding: '5px 12px', fontSize: '0.65rem' }}>
+                   <ShieldCheck size={12} /> VERIFIED IDENTITY
+                </div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 2px', letterSpacing: '-0.5px' }}>
+                  {patient.name}
+                </h2>
+                <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>ID: {patient.patientId}</div>
+              </div>
+
+              <div className="profile-summary-vitals" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+                <div className="specialist-vital-pill">
+                  <label>Blood Group</label>
+                  <span>{patient.bloodGroup || '—'}</span>
+                </div>
+                <div className="specialist-vital-pill">
+                  <label>Gender</label>
+                  <span>{patient.gender || '—'}</span>
+                </div>
+              </div>
+
+              {/* Personal Identity Panel */}
+              <div className="expert-identity-glass-panel" style={{ textAlign: 'left', marginTop: '4px' }}>
+                <div className="identity-item-premium">
+                  <div className="identity-icon-box"><User size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Father's Name</label>
+                    <span>{patient.fathersName || '—'}</span>
+                  </div>
+                </div>
+                
+                <div className="identity-item-premium">
+                  <div className="identity-icon-box"><Calendar size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Patient Age</label>
+                    <span>{calculateAge(patient.dob) || patient.age || '—'} Years</span>
+                  </div>
+                </div>
+
+                <div className="identity-item-premium">
+                  <div className="identity-icon-box"><Phone size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Mobile Number</label>
+                    <span>{patient.phone || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="identity-item-premium" style={{ border: 'none' }}>
+                  <div className="identity-icon-box"><Mail size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Email ID</label>
+                    <span style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>{patient.email || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: Patient Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <ProfileInfoPack title="Contact & Residency" icon={MapPin} color="#10b981" columns={2}>
+                 <ProfileDataItem label="State / UT" value={patient.state} icon={MapPin} editMode={false} />
+                 <ProfileDataItem label="City" value={patient.city} icon={MapPin} editMode={false} />
+                 <ProfileDataItem label="Pin Code" value={patient.pinCode} icon={MapPin} editMode={false} />
+                 <ProfileDataItem label="Home Address" value={patient.address} icon={MapPin} editMode={false} />
+              </ProfileInfoPack>
+
+              <ProfileInfoPack title="Medical Background" icon={Activity} color="#f43f5e" columns={2}>
+                <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                   <div style={{ padding: '16px', background: '#fff1f2', borderRadius: '20px', border: '1.5px solid #fecdd3' }}>
+                      <label style={{ fontSize: '0.65rem', fontWeight: 800, color: '#e11d48', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Active Allergies</label>
+                      <p style={{ margin: 0, fontWeight: 700, color: '#9f1239' }}>{Array.isArray(patient.allergies) ? patient.allergies.join(', ') : (patient.allergies || 'No known allergies reported')}</p>
+                   </div>
+
+                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                         <label style={{ fontSize: '0.6rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Chronic Conditions</label>
+                         <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600 }}>{Array.isArray(patient.conditions) ? patient.conditions.join(', ') : (patient.conditions || 'None')}</p>
+                      </div>
+                      <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                         <label style={{ fontSize: '0.6rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Current Medications</label>
+                         <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600 }}>{Array.isArray(patient.medications) ? patient.medications.join(', ') : (patient.medications || 'None')}</p>
+                      </div>
+                   </div>
+
+                   <div style={{ padding: '16px', background: 'white', borderRadius: '16px', border: '1px dashed #ced4da' }}>
+                       <label style={{ fontSize: '0.6rem', fontWeight: 800, color: '#adb5bd', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Surgical History</label>
+                       <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 500, color: '#495057' }}>{Array.isArray(patient.pastSurgeries) ? patient.pastSurgeries.join(', ') : (patient.pastSurgeries || 'No surgeries recorded')}</p>
+                   </div>
+                </div>
+              </ProfileInfoPack>
+
+              {patient.emergencyContact && (
+                 <ProfileInfoPack title="Emergency Contact" icon={ShieldCheck} color="#0ea5e9" columns={2}>
+                    <ProfileDataItem label="Contact Name" value={patient.emergencyContact.name} icon={User} editMode={false} />
+                    <ProfileDataItem label="Contact Phone" value={patient.emergencyContact.phone} icon={Phone} editMode={false} />
+                 </ProfileInfoPack>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const indianStates = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
   "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", 
@@ -58,6 +192,11 @@ const ProviderDashboard = ({ handleLogout }) => {
     throughputCapacity: 1,
     availability: []
   });
+
+  // Patient Profile Modal State
+  const [selectedPatientProfile, setSelectedPatientProfile] = useState(null);
+  const [showPatientProfile, setShowPatientProfile] = useState(false);
+  const [loadingPatientProfile, setLoadingPatientProfile] = useState(false);
   
   const openWizard = (step = 1, single = false, field = null) => {
     // If we are in the availability tab, use inline editing instead of wizard
@@ -216,6 +355,21 @@ const ProviderDashboard = ({ handleLogout }) => {
     };
     fetchData();
   }, []);
+
+  const handleViewPatientProfile = async (patientId) => {
+    setLoadingPatientProfile(true);
+    setShowPatientProfile(true);
+    setSelectedPatientProfile(null); // Reset
+    try {
+      const { data } = await api.get(`/auth/user/${patientId}`);
+      setSelectedPatientProfile(data);
+    } catch (err) {
+      showToast('Could not fetch patient profile', 'error');
+      setShowPatientProfile(false);
+    } finally {
+      setLoadingPatientProfile(false);
+    }
+  };
 
   const handleStatusUpdate = async (id, status) => {
     try {
@@ -585,6 +739,8 @@ const ProviderDashboard = ({ handleLogout }) => {
                         appointment={appointment} 
                         role="provider"
                         onAction={handleStatusUpdate}
+                        onDownload={handleDownloadTicket}
+                        onViewProfile={handleViewPatientProfile}
                       />
                     ))
                   ) : (
@@ -1044,6 +1200,13 @@ const ProviderDashboard = ({ handleLogout }) => {
       )}
         </>
       )}
+
+      {/* Patient Profile Modal */}
+      <PatientProfileModal 
+        patient={selectedPatientProfile} 
+        onClose={() => setShowPatientProfile(false)} 
+        loading={loadingPatientProfile}
+      />
     </DashboardShell>
   );
 };

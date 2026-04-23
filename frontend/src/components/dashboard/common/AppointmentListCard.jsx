@@ -41,10 +41,13 @@ const AppointmentListCard = ({
           <div className="appt-role-icon">
             {isProvider ? <Activity size={14} /> : <User size={14} />}
           </div>
-          {!isProvider && onViewProfile && (
+          {onViewProfile && (
             <button 
               className="view-profile-avatar-btn"
-              onClick={() => onViewProfile(appointment.providerId?._id || appointment.providerId)}
+              onClick={() => {
+                const targetId = isProvider ? (appointment.userId?._id || appointment.userId) : (appointment.providerId?._id || appointment.providerId);
+                onViewProfile(targetId);
+              }}
             >
               View Profile
             </button>

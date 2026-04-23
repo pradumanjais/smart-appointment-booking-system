@@ -17,8 +17,12 @@ router.post('/login', loginValidator, loginUser);
 // @access  Private
 router.get('/me', authMiddleware, getMe);
 
-// @route   PUT /api/auth/profile
+// @route   GET /api/auth/profile
 // @access  Private
 router.put('/profile', authMiddleware, updateProfile);
+
+// @route   GET /api/auth/user/:id
+// @access  Private
+router.get('/user/:id', authMiddleware, getUserById);
 
 module.exports = router;

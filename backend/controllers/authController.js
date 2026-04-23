@@ -198,6 +198,21 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Get user profile by ID
+// @route   GET /api/auth/user/:id
+// @access  Private
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Helper: Generate Token
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -205,4 +220,4 @@ const generateToken = (id, role) => {
   });
 };
 
-module.exports = { registerUser, loginUser, getMe, updateProfile };
+module.exports = { registerUser, loginUser, getMe, updateProfile, getUserById };

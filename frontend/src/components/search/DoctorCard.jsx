@@ -1,9 +1,10 @@
 import React from 'react';
 import { Star, MapPin, Video, Clock, ChevronRight, ShieldCheck, Award } from 'lucide-react';
-import Button from '../common/Button';
+import { Link } from 'react-router-dom';
 
 const DoctorCard = ({ doctor }) => {
   const {
+    _id,
     userId,
     specialization,
     experience,
@@ -12,26 +13,40 @@ const DoctorCard = ({ doctor }) => {
     consultationModes,
     clinicName,
     location,
-    isVerified = true // Default for UI demo
+    isVerified = true
   } = doctor;
 
   return (
-    <div className="doctor-card animate-fade-in" style={{
+    <div style={{
       background: 'white',
       borderRadius: '24px',
       padding: '24px',
       border: '1px solid #f1f5f9',
       boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
-      transition: 'all 0.3s ease',
+      transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       display: 'flex',
       flexDirection: 'column',
       gap: '20px',
       position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Top Section: Photo & Identity */}
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <div className="doctor-avatar-wrapper" style={{ position: 'relative' }}>
+      cursor: 'pointer',
+      textDecoration: 'none',
+      color: 'inherit',
+      overflow: 'visible' /* Let the badge pop out if needed */
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = 'translateY(-6px)';
+      e.currentTarget.style.boxShadow = '0 20px 40px -10px rgba(99, 102, 241, 0.15)';
+      e.currentTarget.style.borderColor = '#c7d2fe';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = 'translateY(0)';
+      e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.05)';
+      e.currentTarget.style.borderColor = '#f1f5f9';
+    }}
+    >
+      {/* Top Section */}
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        <div style={{ position: 'relative' }}>
           <img 
             src={userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/3774/3774299.png'} 
             alt={userId?.name} 
@@ -40,105 +55,130 @@ const DoctorCard = ({ doctor }) => {
               height: '80px', 
               borderRadius: '20px', 
               objectFit: 'cover',
-              background: '#f8fafc'
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0'
             }} 
           />
           {isVerified && (
-            <div style={{
+            <div title="Verified Professional" style={{
               position: 'absolute',
-              bottom: '-5px',
-              right: '-5px',
-              background: 'var(--primary)',
+              bottom: '-6px',
+              right: '-6px',
+              background: '#10b981',
               color: 'white',
               borderRadius: '50%',
-              padding: '4px',
+              padding: '6px',
               border: '3px solid white',
-              display: 'flex'
+              display: 'flex',
+              boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)'
             }}>
-              <ShieldCheck size={14} />
+              <ShieldCheck size={14} strokeWidth={3} />
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+            <div style={{ overflow: 'hidden' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Dr. {userId?.name}
               </h3>
-              <p style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem', marginBottom: '8px' }}>
+              <p style={{ color: '#4f46e5', fontWeight: 800, fontSize: '0.85rem', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {specialization}
               </p>
             </div>
+            
+            {/* Rating Badge */}
             <div style={{ 
-              background: '#fffbeb', 
-              padding: '4px 10px', 
+              background: '#fef9c3', 
+              padding: '4px 8px', 
               borderRadius: '10px', 
               display: 'flex', 
               alignItems: 'center', 
               gap: '4px',
-              border: '1px solid #fef3c7'
+              flexShrink: 0
             }}>
-              <Star size={14} fill="#f59e0b" color="#f59e0b" />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>{rating || '4.8'}</span>
+              <Star size={14} fill="#eab308" color="#eab308" />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#a16207' }}>
+                {rating > 0 ? rating.toFixed(1) : 'New'}
+              </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}>
-              <Award size={14} />
-              <span>{experience || '8'}+ Years Exp.</span>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+              <Award size={14} color="#94a3b8" />
+              <span>{experience || '0'} Yrs Exp.</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}>
-              <MapPin size={14} />
-              <span>{location || 'Mumbai, MH'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+              <MapPin size={14} color="#94a3b8" />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>
+                {location || clinicName || 'Unavailable'}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Middle Section: Practice Details */}
+      {/* Middle Section: Fee & Next Available */}
       <div style={{ 
-        background: '#f8fafc', 
+        background: 'linear-gradient(to right, #f8fafc, #f1f5f9)', 
         borderRadius: '16px', 
-        padding: '12px 16px',
+        padding: '16px',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        border: '1px solid #e2e8f0'
       }}>
         <div>
-            <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Next Available</p>
-            <p style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 700 }}>Today, 04:30 PM</p>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Consultation</p>
+            <p style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: 900, margin: 0 }}>
+              ₹{consultationFees?.online || consultationFees?.inPerson || 'N/A'}
+            </p>
         </div>
         <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Consultation Fee</p>
-            <p style={{ fontSize: '1rem', color: 'var(--primary)', fontWeight: 800 }}>
-              ₹{consultationFees?.online || consultationFees?.inPerson || '500'}
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Availability</p>
+            <p style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+              <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #10b981' }}></span>
+              Available Slots
             </p>
         </div>
       </div>
 
       {/* Footer: Capabilities & Action */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
             {consultationModes?.includes('Video') && (
-                <div title="Video Consult Available" style={{ padding: '8px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)' }}>
-                    <Video size={18} />
+                <div title="Video Consultation" style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: '#e0e7ff', color: '#4f46e5' }}>
+                    <Video size={16} strokeWidth={2.5} />
                 </div>
             )}
             {consultationModes?.includes('In-person') && (
-                <div title="Clinic Visit Available" style={{ padding: '8px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                    <MapPin size={18} />
+                <div title="Clinic Visit" style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: '#dcfce7', color: '#166534' }}>
+                    <MapPin size={16} strokeWidth={2.5} />
                 </div>
             )}
-            <div title="Morning & Evening Slots" style={{ padding: '8px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                <Clock size={18} />
-            </div>
         </div>
         
-        <Button variant="primary" style={{ paddingHorizontal: '20px' }}>
-          Book Now <ChevronRight size={16} />
-        </Button>
+        <Link 
+          to={`/doctor/${_id}`}
+          style={{ 
+            background: '#6366f1',
+            color: 'white',
+            padding: '10px 24px',
+            borderRadius: '14px',
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            textDecoration: 'none',
+            fontSize: '0.95rem'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#4f46e5'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#6366f1'; }}
+        >
+          Book <ChevronRight size={16} strokeWidth={3} />
+        </Link>
       </div>
     </div>
   );

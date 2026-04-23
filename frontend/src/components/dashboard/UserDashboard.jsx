@@ -213,10 +213,22 @@ const UserDashboard = ({ handleLogout }) => {
   useEffect(() => {
     if (location.state?.bookDoctor) {
       const doc = location.state.bookDoctor;
-      const hospId = doc.hospitalId?._id || doc.hospitalId || '';
-      const hospState = doc.hospitalId?.state || doc.clinicState || '';
+
+      // Determine if provider has a real hospital or is clinic-based
+      const rawHospId = doc.hospitalId?._id;
+      const hasRealHospital = rawHospId && typeof rawHospId === 'string' && rawHospId.length > 0;
+
       const clinic = doc.clinicName || doc.hospitalId?.name || '';
-      const fullHospital = hospitals.find(h => h._id === hospId) || doc.hospitalId || null;
+      const hospState = doc.hospitalId?.state || doc.clinicState || '';
+
+      // Use real hospitalId if available, otherwise construct a synthetic clinic ID
+      const hospId = hasRealHospital
+        ? rawHospId
+        : (clinic ? `clinic:${clinic}-${hospState}` : '');
+
+      const fullHospital = hasRealHospital
+        ? (hospitals.find(h => h._id === rawHospId) || doc.hospitalId || null)
+        : null;
 
       setSelectedProvider(doc);
       setSelectedHospital(fullHospital);

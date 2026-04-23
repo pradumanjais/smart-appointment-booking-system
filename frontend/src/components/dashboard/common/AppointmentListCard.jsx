@@ -8,7 +8,8 @@ const AppointmentListCard = ({
   role, 
   onAction, 
   onDownload,
-  onFollowUp
+  onFollowUp,
+  onViewProfile
 }) => {
   if (!appointment) return null;
 
@@ -35,11 +36,19 @@ const AppointmentListCard = ({
   return (
     <div className={`appointment-list-card ${appointment.status}`}>
       <div className="appt-main-info">
-        <div className="appt-avatar-box">
+        <div className="appt-avatar-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
           <img src={avatar} alt={personName} className="appt-avatar" />
           <div className="appt-role-icon">
             {isProvider ? <Activity size={14} /> : <User size={14} />}
           </div>
+          {!isProvider && onViewProfile && (
+            <button 
+              className="view-profile-avatar-btn"
+              onClick={() => onViewProfile(appointment.providerId?._id || appointment.providerId)}
+            >
+              View Profile
+            </button>
+          )}
         </div>
 
         <div className="appt-details-brief">
@@ -84,8 +93,6 @@ const AppointmentListCard = ({
         <StatusBadge status={effectiveStatus === 'not-visited' ? 'Not Visited' : effectiveStatus} />
         
         <div className="btn-group-sm">
-          {/* Manual confirmation UI purged; validation now strictly enforces hourly slots auto-confirm. */}
-
           {isProvider && appointment.status === 'confirmed' && !isPassed && (
             <button 
               className="btn btn-sm btn-primary" 

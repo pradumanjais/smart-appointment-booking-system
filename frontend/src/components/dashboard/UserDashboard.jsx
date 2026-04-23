@@ -69,17 +69,49 @@ const ExpertProfileModal = ({ expert, onClose, loading }) => {
                   <span><Star size={12} fill="#ffcc00" color="#ffcc00" /> {expert.rating || 4.9}</span>
                 </div>
               </div>
+
+              {/* Enhanced Seamless Identity Panel */}
+              <div className="expert-identity-glass-panel" style={{ textAlign: 'left', marginTop: '4px' }}>
+                <div className="identity-item-premium">
+                  <div className="identity-icon-box"><User size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Father's Name</label>
+                    <span>{expert.fathersName || '—'}</span>
+                  </div>
+                </div>
+                
+                <div className="identity-item-premium">
+                  <div className="identity-icon-box"><Calendar size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Expert Age</label>
+                    <span>{calculateAge(expert.userId?.dob) || '—'} Years</span>
+                  </div>
+                </div>
+
+                <div className="identity-item-premium">
+                  <div className="identity-icon-box"><Phone size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Contact Number</label>
+                    <span>{expert.userId?.phone || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="identity-item-premium" style={{ border: 'none' }}>
+                  <div className="identity-icon-box"><Mail size={14} /></div>
+                  <div className="identity-texts">
+                    <label>Email ID</label>
+                    <span style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>{expert.userId?.email || '—'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* RIGHT COLUMN: Expert Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <ProfileInfoPack title="Personal Identity" icon={User} color="#6366f1" columns={2}>
-                <ProfileDataItem label="Name" value={expert.userId?.name} icon={User} editMode={false} />
-                <ProfileDataItem label="Father's Name" value={expert.fathersName} icon={User} editMode={false} />
-                <ProfileDataItem label="Age" value={calculateAge(expert.userId?.dob) || 'Not Specified'} icon={Calendar} editMode={false} />
-                <ProfileDataItem label="Mobile Number" value={expert.userId?.phone} icon={Phone} editMode={false} />
-                <ProfileDataItem label="Email Address" value={expert.userId?.email} icon={Mail} editMode={false} />
-              </ProfileInfoPack>
+              {/* About Expert moved to top */}
+                 <ProfileInfoPack title="About the Expert" icon={Activity} color="#ec4899" columns={1} compact={true}>
+                    <p style={{ lineHeight: 1.5, color: '#475569', margin: 0, fontSize: '0.88rem', fontWeight: 500, opacity: 0.9 }}>{expert.bio}</p>
+                 </ProfileInfoPack>
 
               <ProfileInfoPack title="Medical Credentials" icon={ShieldCheck} color="#f59e0b" columns={2}>
                 <ProfileDataItem label="Expertise" value={expert.specialization} icon={Activity} editMode={false} />
@@ -99,12 +131,6 @@ const ExpertProfileModal = ({ expert, onClose, loading }) => {
                   editMode={false} 
                 />
               </ProfileInfoPack>
-              
-              {expert.bio && (
-                 <ProfileInfoPack title="About the Expert" icon={Activity} color="#ec4899" columns={1}>
-                    <p style={{ lineHeight: 1.6, color: '#475569', margin: 0, fontSize: '0.95rem' }}>{expert.bio}</p>
-                 </ProfileInfoPack>
-              )}
             </div>
           </div>
         )}
@@ -1145,23 +1171,33 @@ const UserDashboard = ({ handleLogout }) => {
                         key={p._id} 
                         className={`doctor-mini-card ${selectedProvider?._id === p._id ? 'selected' : ''}`}
                         onClick={() => setSelectedProvider(p)}
+                        style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}
                       >
-                        <img src={p.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} alt="Dr." />
-                        <div className="doctor-mini-info">
-                          <strong>{p.userId?.name}</strong>
-                          <span className="specialization-text">{p.specialization}</span>
-                          <div className="doctor-location">
-                            <MapPin size={12} />
-                            <span>{p.hospitalId?.name || p.clinicName || 'Universal Health Center'}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <img src={p.userId?.avatar || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'} alt="Dr." />
+                          <div className="doctor-mini-info" style={{ flex: 1 }}>
+                            <strong style={{ display: 'block', marginBottom: '2px' }}>{p.userId?.name}</strong>
+                            <span className="specialization-text">{p.specialization}</span>
+                            <div className="doctor-location">
+                              <MapPin size={12} />
+                              <span>{p.hospitalId?.name || p.clinicName || 'Universal Health Center'}</span>
+                            </div>
+                            <div className="mini-rating" style={{ marginTop: '4px' }}>
+                               <Star size={12} fill="#ffcc00" color="#ffcc00" /> 
+                               <span style={{ fontSize: '0.8rem', fontWeight: 800, marginLeft: '4px', color: '#475569' }}>{p.rating}</span>
+                            </div>
                           </div>
-                          <div className="mini-rating"><Star size={12} fill="#ffcc00" color="#ffcc00" /> {p.rating}</div>
                         </div>
-                        <button 
-                          className="view-profile-mini-btn"
-                          onClick={(e) => handleViewExpertProfile(e, p._id)}
-                        >
-                          View Profile
-                        </button>
+
+                        <div className="doctor-card-actions" style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '10px' }}>
+                          <button 
+                            className="view-profile-mini-btn"
+                            onClick={(e) => handleViewExpertProfile(e, p._id)}
+                            style={{ width: '100%' }}
+                          >
+                            View Profile
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1334,6 +1370,7 @@ const UserDashboard = ({ handleLogout }) => {
                     onAction={handleApptAction}
                     onDownload={handleDownloadTicket}
                     onFollowUp={latestCompletedIds.includes(appt._id) ? handleRequestFollowUp : null}
+                    onViewProfile={(expertId) => handleViewExpertProfile({ stopPropagation: () => {} }, expertId)}
                   />
                 ));
               })()

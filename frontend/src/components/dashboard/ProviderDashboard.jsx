@@ -357,13 +357,19 @@ const ProviderDashboard = ({ handleLogout }) => {
   }, []);
 
   const handleViewPatientProfile = async (patientId) => {
+    console.log('Fetching patient profile for ID:', patientId);
     setLoadingPatientProfile(true);
     setShowPatientProfile(true);
-    setSelectedPatientProfile(null); // Reset
+    setSelectedPatientProfile(null); 
     try {
-      const { data } = await api.get(`/auth/user/${patientId}`);
+      // Ensure we pass a string ID
+      const targetId = typeof patientId === 'object' ? (patientId._id || patientId.id) : patientId;
+      if (!targetId) throw new Error('No valid Patient ID found');
+      
+      const { data } = await api.get(`/auth/user/${targetId}`);
       setSelectedPatientProfile(data);
     } catch (err) {
+      console.error('Patient Fetch Error:', err);
       showToast('Could not fetch patient profile', 'error');
       setShowPatientProfile(false);
     } finally {
@@ -381,6 +387,10 @@ const ProviderDashboard = ({ handleLogout }) => {
     } catch (err) {
       showToast(err.response?.data?.message || 'Update failed', 'error');
     }
+  };
+
+  const handleDownloadTicket = (appointment) => {
+    showToast('Patient receipt generation is coming soon', 'info');
   };
 
   const handleEditClick = async () => {

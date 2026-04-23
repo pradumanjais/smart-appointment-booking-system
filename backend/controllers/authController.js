@@ -203,12 +203,15 @@ const updateProfile = async (req, res) => {
 // @access  Private
 const getUserById = async (req, res) => {
   try {
+    console.log(`[API] Fetching User Profile: ${req.params.id} (Requester: ${req.user.id})`);
     const user = await User.findById(req.params.id);
     if (!user) {
+      console.log(`[API] User not found: ${req.params.id}`);
       return res.status(404).json({ message: 'User not found' });
     }
     res.json(user);
   } catch (err) {
+    console.error(`[API] Error in getUserById:`, err);
     res.status(500).json({ message: err.message });
   }
 };
